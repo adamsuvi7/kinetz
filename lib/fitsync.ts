@@ -29,6 +29,7 @@ export type AppState = {
   tdee: number;
   bmr: number;
   targetProtein: number;
+  tdeeInputs: { weight: string; height: string; goal: string };
   consumedCalories: number;
   consumedProtein: number;
   fastingProtocol: string;
@@ -71,6 +72,7 @@ export const initialState: AppState = {
   tdee: 2150,
   bmr: 1698,
   targetProtein: 150,
+  tdeeInputs: { weight: '72', height: '173', goal: '-400' },
   consumedCalories: 943,
   consumedProtein: 138,
   fastingProtocol: '16:8',

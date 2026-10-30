@@ -65,7 +65,9 @@ function BodyCurveChart({ data, labels }: { data: number[]; labels: string[] }) 
 export default function AnalyticsTab() {
   const { s, set, toast } = useApp();
   const [metric, setMetric] = useState<BodyMetric>('weight');
-  const [inputs, setInputs] = useState<Record<BodyMetric, string>>({ weight: '72.0', waist: '78.5', thigh: '56.0', arm: '36.5', chest: '101.0' });
+  const [inputs, setInputs] = useState(
+    () => Object.fromEntries(INPUTS.map(({ key }) => [key, last(s.bodyHistory[key]).toFixed(1)])) as Record<BodyMetric, string>,
+  );
 
   const saveNewBodyMetrics = () => {
     set((p) => {

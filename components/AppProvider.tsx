@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { initialState, type AppState, type StudioTemplate, type Tab, type WorkoutSub } from '@/lib/fitsync';
 import { toJpegDataUrl } from '@/lib/image';
+import { loadState, saveState } from '@/lib/persist';
 
 export type CameraMode = 'studio' | 'food';
 
@@ -37,6 +38,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const [camera, setCamera] = useState<CameraMode | null>(null);
   const [beaconOpen, setBeaconOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    loadState()
+      .then(set)
+      .catch((e) => console.warn('FitSync: saved data unavailable, using defaults', e))
+      .finally(() => setLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const t = setTimeout(() => saveState(s).catch((e) => console.warn('FitSync: save failed', e)), 300);
+    return () => clearTimeout(t);
+  }, [s, loaded]);
 
   useEffect(() => {
     const cl = document.documentElement.classList;
@@ -115,7 +130,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider
       value={{ s, set, toast, switchTab, switchWorkoutSub, exportToStudio, setBgImage, analyzeFood, camera, openCamera, closeCamera, beaconOpen, setBeaconOpen }}
     >
-      {children}
+      {/* Mount after IndexedDB load so tab-local inputs initialise from saved data, not defaults. */}
+      {loaded && children}
       {/* TOAST NOTIFICATION */}
       <div
         className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-[#C8F526] text-[#0E110F] text-xs font-extrabold shadow-2xl pointer-events-none transition-opacity duration-300"

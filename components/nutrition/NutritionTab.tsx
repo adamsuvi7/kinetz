@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { formatNumberID } from '@/lib/fitsync';
 import { useApp } from '../AppProvider';
 
@@ -14,7 +13,7 @@ const DONE_DAYS = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
 
 export default function NutritionTab() {
   const { s, set, toast, openCamera, exportToStudio } = useApp();
-  const [tdeeIn, setTdeeIn] = useState({ weight: '72', height: '173', goal: '-400' });
+  const tdeeIn = s.tdeeInputs;
   const m = s.activeMeal;
   const pct = Math.round(m.scale * 100);
   const cal = Math.round(m.baseCal * m.scale);
@@ -35,14 +34,13 @@ export default function NutritionTab() {
   };
 
   const recalcTdee = (next: typeof tdeeIn) => {
-    setTdeeIn(next);
     const w = parseFloat(next.weight) || 72;
     const h = parseFloat(next.height) || 173;
     const goalDelta = parseInt(next.goal, 10) || 0;
     // Mifflin-St Jeor (age 24 male baseline)
     const bmr = Math.round(10 * w + 6.25 * h - 5 * 24 + 5);
     const maintenance = Math.round(bmr * 1.5);
-    set((p) => ({ ...p, bmr, tdee: maintenance + goalDelta, targetProtein: Math.round(w * 2.1) }));
+    set((p) => ({ ...p, tdeeInputs: next, bmr, tdee: maintenance + goalDelta, targetProtein: Math.round(w * 2.1) }));
   };
 
   return (

@@ -22,7 +22,7 @@ const RACES = [
 export default function RunPanel() {
   const { s, set, toast, exportToStudio } = useApp();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [preset, setPreset] = useState('morning');
+  const [preset, setPreset] = useState(() => Object.keys(PRESETS).find((k) => PRESETS[k].title === s.runData.title) || 'morning');
   const [started, setStarted] = useState(false);
   const d = s.runData;
   const live = d.runningLive;
