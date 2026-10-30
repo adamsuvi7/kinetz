@@ -2,7 +2,7 @@
 // Simulates a city ride and a run with the errors real phones produce, then measures how clean the
 // recorded track is. Old = the first recorder filter (accuracy/speed gate only), New = lib/ride.ts filterFix.
 import assert from 'node:assert/strict';
-import { filterFix, haversineM, rideStats, type FilterState, type TrackPoint } from '../lib/ride.ts';
+import { SPORT_MAX_SPEED_MS, filterFix, haversineM, rideStats, type FilterState, type Sport, type TrackPoint } from '../lib/ride.ts';
 
 const LAT0 = -0.305, LON0 = 100.369, M_PER_DEG = 111_195;
 const toLatLon = (x: number, y: number) => ({ lat: LAT0 + y / M_PER_DEG, lon: LON0 + x / (M_PER_DEG * Math.cos((LAT0 * Math.PI) / 180)) });
@@ -81,8 +81,8 @@ function record(sim: Sim, mode: 'old' | 'new', maxSpeedMs?: number) {
   return out;
 }
 
-function measure(sim: Sim, pts: TrackPoint[]) {
-  const s = rideStats([pts]);
+function measure(sim: Sim, pts: TrackPoint[], sport: Sport = 'ride') {
+  const s = rideStats([pts], sport);
   const inStop = (t: number) => sim.stops.some(([a, b]) => t >= a + 5000 && t <= b);
   let stopDrift = 0;
   for (let i = 1; i < pts.length; i++) if (inStop(pts[i - 1].t) && inStop(pts[i].t)) stopDrift += haversineM(pts[i - 1], pts[i]);
@@ -106,13 +106,14 @@ type M = ReturnType<typeof measure>;
 const worst = (ms: M[]) => Object.fromEntries(Object.keys(ms[0]).map((k) => [k, Math.max(...ms.map((m) => m[k as keyof M]))])) as M;
 
 // Worst case over three random routes per activity, so one lucky route can't hide a problem.
-for (const [label, speed, maxSpeedMs] of [['Gowes 21,6 km/j', 6, undefined], ['Lari 10 km/j', 2.8, 8]] as const) {
+for (const [label, speed, maxSpeedMs] of [['Gowes 21,6 km/j', 6, undefined], ['Lari 10 km/j', 2.8, SPORT_MAX_SPEED_MS.run]] as const) {
   const before: M[] = [];
   const after: M[] = [];
   for (const seed of [1, 2, 3]) {
     const sim = simulate(speed, seed);
-    before.push(measure(sim, record(sim, 'old')));
-    after.push(measure(sim, record(sim, 'new', maxSpeedMs)));
+    const sport: Sport = maxSpeedMs ? 'run' : 'ride';
+    before.push(measure(sim, record(sim, 'old'), sport));
+    after.push(measure(sim, record(sim, 'new', maxSpeedMs), sport));
   }
   const b = worst(before);
   const a = worst(after);

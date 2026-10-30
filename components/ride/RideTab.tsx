@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { isNative, openLocationSettings, startGps, type GpsError } from '@/lib/gps';
 import {
-  currentKmh, filterFix, defaultRideName, formatClock, formatDuration, formatKm, formatRideDate, formatSpeed, rideStats,
-  type FilterState, type Ride, type Segments,
+  SPORT_MAX_SPEED_MS, currentKmh, filterFix, defaultRideName, formatClock, formatDuration, formatKm, formatPace, formatRideDate, formatSpeed,
+  rideStats, type FilterState, type Ride, type Segments, type Sport,
 } from '@/lib/ride';
 import { drawRoute } from '@/lib/story';
 import { BUILD } from '@/lib/updater';
@@ -37,7 +37,7 @@ function RouteCanvas({ segments, width, height, className }: { segments: Segment
 
 function RideCard({ ride }: { ride: Ride }) {
   const { set, toast, exportToStudio } = useApp();
-  const st = rideStats(ride.segments);
+  const st = rideStats(ride.segments, ride.sport);
 
   const remove = () => {
     if (!window.confirm(`Hapus "${ride.name}"? Data GPS ride ini tidak bisa dikembalikan.`)) return;
@@ -52,7 +52,7 @@ function RideCard({ ride }: { ride: Ride }) {
         <input
           defaultValue={ride.name}
           onBlur={(e) => {
-            const name = e.target.value.trim() || defaultRideName(ride.startedAt);
+            const name = e.target.value.trim() || defaultRideName(ride.startedAt, ride.sport);
             e.target.value = name;
             set((p) => ({ ...p, rides: p.rides.map((r) => (r.id === ride.id ? { ...r, name } : r)) }));
           }}
@@ -63,7 +63,11 @@ function RideCard({ ride }: { ride: Ride }) {
         <div className="flex gap-3 text-[11px]">
           <span><strong className="font-display">{formatKm(st.distanceM)}</strong> km</span>
           <span><strong className="font-display">{formatDuration(st.movingSec)}</strong></span>
-          <span><strong className="font-display">{formatSpeed(st.avgKmh)}</strong> km/jam</span>
+          {ride.sport === 'run' ? (
+            <span><strong className="font-display">{formatPace(st.avgKmh)}</strong> /km</span>
+          ) : (
+            <span><strong className="font-display">{formatSpeed(st.avgKmh)}</strong> km/jam</span>
+          )}
         </div>
         <div className="flex gap-2 pt-0.5">
           <button
@@ -92,6 +96,8 @@ export default function RideTab() {
   const [now, setNow] = useState(() => Date.now());
   const active = s.activeRide;
   const status = active?.status ?? 'idle';
+  // Sport for the next recording; defaults to whatever was recorded last.
+  const [pick, setPick] = useState<Sport>(() => s.rides[0]?.sport ?? 'ride');
   const activeRef = useRef(active);
   activeRef.current = active;
 
@@ -111,12 +117,13 @@ export default function RideTab() {
     // Smoothing state lives here (not in React state) so StrictMode's double-run updaters can't advance it twice.
     let filter: FilterState = null;
     let last = activeRef.current?.segments.at(-1)?.at(-1);
+    const maxSpeedMs = SPORT_MAX_SPEED_MS[activeRef.current?.sport ?? 'ride'];
     setGpsError(null);
     startGps(
       (p) => {
         setAcc(p.acc);
         setGpsError(null);
-        const r = filterFix(filter, last, p);
+        const r = filterFix(filter, last, p, maxSpeedMs);
         filter = r.state;
         if (!r.point) return;
         const point = r.point;
@@ -147,7 +154,7 @@ export default function RideTab() {
   const start = () => {
     const t = Date.now();
     setAcc(null);
-    set((p) => ({ ...p, activeRide: { startedAt: t, status: 'recording', segments: [[]], elapsedBefore: 0, resumedAt: t } }));
+    set((p) => ({ ...p, activeRide: { startedAt: t, sport: pick, status: 'recording', segments: [[]], elapsedBefore: 0, resumedAt: t } }));
   };
 
   const pause = () =>
@@ -177,13 +184,15 @@ export default function RideTab() {
       if (window.confirm('Belum ada titik GPS yang terekam. Buang ride ini?')) set((p) => ({ ...p, activeRide: null }));
       return;
     }
-    const ride: Ride = { id: String(active.startedAt), name: defaultRideName(active.startedAt), startedAt: active.startedAt, segments };
+    const ride: Ride = { id: String(active.startedAt), name: defaultRideName(active.startedAt, sport), startedAt: active.startedAt, segments, sport };
     set((p) => ({ ...p, activeRide: null, rides: [ride, ...p.rides], studio: { ...p.studio, rideId: ride.id } }));
     toast(`${ride.name} tersimpan · ${formatKm(rideStats(segments).distanceM)} km`);
   };
 
+  const sport: Sport = active?.sport ?? pick;
+  const isRun = sport === 'run';
   const segments = active?.segments ?? [];
-  const st = rideStats(segments);
+  const st = rideStats(segments, sport);
   const elapsed = active ? active.elapsedBefore + (status === 'recording' ? Math.max(0, now - active.resumedAt) / 1000 : 0) : 0;
   const hasFix = segments.some((seg) => seg.length > 0);
   const lastFix = segments.flat().at(-1);
@@ -203,8 +212,8 @@ export default function RideTab() {
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">GPS RIDE</span>
-            <h2 className="text-base font-extrabold mt-1">Rekam Gowes</h2>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">{isRun ? 'GPS RUN' : 'GPS RIDE'}</span>
+            <h2 className="text-base font-extrabold mt-1">{isRun ? 'Rekam Lari' : 'Rekam Gowes'}</h2>
           </div>
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${gpsChip.cls}`}>
             {status === 'recording' && !gpsError && <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-1.5 beacon-dot"></span>}
@@ -216,7 +225,7 @@ export default function RideTab() {
           <RouteCanvas segments={segments} width={440} height={230} className="w-full h-48 block" />
           {!hasFix && (
             <div className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-white/60 px-6 text-center">
-              {status === 'idle' ? 'Tekan Mulai Ride, rute GPS kamu tergambar di sini secara langsung.' : 'Menunggu titik GPS pertama…'}
+              {status === 'idle' ? 'Tekan Mulai, rute GPS kamu tergambar di sini secara langsung.' : 'Menunggu titik GPS pertama…'}
             </div>
           )}
         </div>
@@ -247,10 +256,10 @@ export default function RideTab() {
         <div className="grid grid-cols-3 gap-2 my-4 text-center">
           {[
             { v: formatClock(elapsed), l: 'Waktu' },
-            { v: formatSpeed(liveKmh), l: 'Kec. km/jam' },
-            { v: formatSpeed(st.avgKmh), l: 'Rata-rata' },
+            isRun ? { v: formatPace(liveKmh), l: 'Pace /km' } : { v: formatSpeed(liveKmh), l: 'Kec. km/jam' },
+            isRun ? { v: formatPace(st.avgKmh), l: 'Pace rata-rata' } : { v: formatSpeed(st.avgKmh), l: 'Rata-rata' },
             { v: formatDuration(st.movingSec), l: 'Bergerak' },
-            { v: formatSpeed(st.maxKmh), l: 'Maks km/jam' },
+            isRun ? { v: formatPace(st.maxKmh), l: 'Pace terbaik' } : { v: formatSpeed(st.maxKmh), l: 'Maks km/jam' },
             { v: `${Math.round(st.elevGainM)} m`, l: 'Elevasi' },
           ].map((x) => (
             <div key={x.l} className="surface-card-alt p-2.5">
@@ -261,9 +270,18 @@ export default function RideTab() {
         </div>
 
         {status === 'idle' ? (
-          <button onClick={start} className="w-full py-3 rounded-xl text-sm lime-btn">
-            ▶ Mulai Ride
-          </button>
+          <>
+            <div className="grid grid-cols-2 gap-1.5 p-1 surface-card-alt rounded-2xl mb-2">
+              {([['ride', '🚴 Gowes'], ['run', '🏃 Lari']] as const).map(([v, label]) => (
+                <button key={v} onClick={() => setPick(v)} className={`py-2 rounded-xl text-xs font-bold ${pick === v ? 'lime-btn' : 'opacity-75'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button onClick={start} className="w-full py-3 rounded-xl text-sm lime-btn">
+              {isRun ? '▶ Mulai Lari' : '▶ Mulai Gowes'}
+            </button>
+          </>
         ) : (
           <div className="flex gap-2">
             {status === 'recording' ? (
@@ -297,7 +315,7 @@ export default function RideTab() {
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold">Riwayat Ride</h3>
+            <h3 className="text-sm font-bold">Riwayat Aktivitas</h3>
             <p className="text-[11px] opacity-65">Ketuk nama untuk mengganti, lalu buat story dari rute aslinya</p>
           </div>
           {s.rides.length > 0 && (

@@ -4,9 +4,12 @@ export type TrackPoint = { lat: number; lon: number; t: number; alt: number | nu
 /** A ride is a list of segments; a new segment starts after every pause, so the gap isn't counted as distance. */
 export type Segments = TrackPoint[][];
 
-export type Ride = { id: string; name: string; startedAt: number; segments: Segments };
+export type Sport = 'ride' | 'run';
+/** `sport` is missing on rides recorded before running was added; treat those as rides. */
+export type Ride = { id: string; name: string; startedAt: number; segments: Segments; sport?: Sport };
 export type ActiveRide = {
   startedAt: number;
+  sport?: Sport;
   status: 'recording' | 'paused';
   segments: Segments;
   /** Recorded seconds before the current recording span, and when that span started; drives the live timer. */
@@ -27,6 +30,8 @@ const R_EARTH = 6371008.8;
 const MAX_ACCURACY_M = 35; // fixes worse than this are dropped
 const FIRST_FIX_ACCURACY_M = 20; // the first fix anchors the track, so wait for a decent lock
 const MAX_SPEED_MS = 90 / 3.6; // fast descent on a bike; anything quicker between fixes is a GPS jump
+/** Fastest plausible movement per sport; used to reject GPS jumps (sprinting tops out well below 8 m/s). */
+export const SPORT_MAX_SPEED_MS: Record<Sport, number> = { ride: MAX_SPEED_MS, run: 8 };
 const ACCEL_NOISE = 1; // Kalman: expected acceleration (m/s²): braking, sprinting, turning a corner
 // Stop detection: staying within STILL_RADIUS for STILL_AFTER = stopped; the track holds its position
 // until the rider is clearly LEAVE_M away (GPS drifts several metres while standing at a traffic light).
@@ -40,7 +45,9 @@ const GAP_RESET_S = 10; // after a longer signal loss, start a fresh estimate (i
 const MIN_MOVING_MS = 0.8; // ~3 km/h: below this the bike is considered stopped
 const MAX_GAP_S = 60; // longer gaps (signal loss) never count as moving time
 const ELEV_HYSTERESIS_M = 4; // GPS altitude jitters; only count climbs that persist
-const SPEED_WINDOW_S = 10; // max speed is averaged over this long, so GPS jitter can't fake a sprint
+// Max speed / best pace is averaged over this long, so GPS jitter can't fake a sprint. Pace reacts far more
+// to small position errors at running speed, so runs average over longer.
+const SPEED_WINDOW_S: Record<Sport, number> = { ride: 10, run: 30 };
 
 const toRad = (d: number) => (d * Math.PI) / 180;
 
@@ -140,7 +147,8 @@ export function filterFix(state: FilterState, last: TrackPoint | undefined, p: T
   return { state: s, point: null };
 }
 
-export function rideStats(segments: Segments): RideStats {
+export function rideStats(segments: Segments, sport: Sport = 'ride'): RideStats {
+  const windowS = SPEED_WINDOW_S[sport];
   let distanceM = 0, movingSec = 0, elapsedSec = 0, maxMs = 0, elevGainM = 0;
 
   for (const seg of segments) {
@@ -159,9 +167,9 @@ export function rideStats(segments: Segments): RideStats {
     // Max speed over a >=5 s window, so a single noisy fix can't spike it.
     let j = 0;
     for (let i = 1; i < seg.length; i++) {
-      while (j < i - 1 && seg[i].t - seg[j + 1].t >= SPEED_WINDOW_S * 1000) j++;
+      while (j < i - 1 && seg[i].t - seg[j + 1].t >= windowS * 1000) j++;
       const dt = (seg[i].t - seg[j].t) / 1000;
-      if (dt >= SPEED_WINDOW_S && dt <= MAX_GAP_S) maxMs = Math.max(maxMs, (cum[i] - cum[j]) / dt);
+      if (dt >= windowS && dt <= MAX_GAP_S) maxMs = Math.max(maxMs, (cum[i] - cum[j]) / dt);
     }
 
     let ref: number | null = null;
@@ -203,12 +211,25 @@ export function cyclingKcal(stats: RideStats, weightKg: number) {
   return met * weightKg * (stats.movingSec / 3600);
 }
 
-export function defaultRideName(startedAt: number) {
+// Running: about 1 kcal per kg per km, largely independent of pace.
+export function activityKcal(stats: RideStats, weightKg: number, sport: Sport = 'ride') {
+  return sport === 'run' ? weightKg * (stats.distanceM / 1000) : cyclingKcal(stats, weightKg);
+}
+
+export function defaultRideName(startedAt: number, sport: Sport = 'ride') {
+  const what = sport === 'run' ? 'Lari' : 'Gowes';
   const h = new Date(startedAt).getHours();
-  if (h >= 4 && h < 10) return 'Gowes Pagi';
-  if (h >= 10 && h < 15) return 'Gowes Siang';
-  if (h >= 15 && h < 18) return 'Gowes Sore';
-  return 'Gowes Malam';
+  if (h >= 4 && h < 10) return `${what} Pagi`;
+  if (h >= 10 && h < 15) return `${what} Siang`;
+  if (h >= 15 && h < 18) return `${what} Sore`;
+  return `${what} Malam`;
+}
+
+/** Minutes per km, e.g. 5'12" (runner notation). Slower than 30 min/km shows a dash. */
+export function formatPace(kmh: number) {
+  if (kmh < 2) return '–';
+  const s = Math.round(3600 / kmh);
+  return `${Math.floor(s / 60)}'${String(s % 60).padStart(2, '0')}"`;
 }
 
 /** Project segments into a w×h box (equirectangular, aspect preserved, centered). */

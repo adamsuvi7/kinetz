@@ -1,6 +1,6 @@
 // Run: npm test  (Node >= 22.6 strips the types natively)
 import assert from 'node:assert/strict';
-import { cyclingKcal, filterFix, fitRoute, haversineM, rideStats, type TrackPoint } from '../lib/ride.ts';
+import { activityKcal, cyclingKcal, defaultRideName, filterFix, fitRoute, formatPace, haversineM, rideStats, type TrackPoint } from '../lib/ride.ts';
 
 const near = (a: number, b: number, tol: number, msg: string) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 
@@ -50,5 +50,13 @@ assert.equal(jump.point, null, '1.1 km in 1 s = GPS jump rejected');
 const pts = fitRoute([seg], 100, 200, 400, 400).flat();
 assert.ok(pts.every((p) => p.x >= 100 - 1e-6 && p.x <= 500 + 1e-6 && p.y >= 200 - 1e-6 && p.y <= 600 + 1e-6), 'route fits box');
 assert.ok(pts[0].y > pts[pts.length - 1].y, 'north is up');
+
+// Running
+assert.equal(formatPace(12), "5'00\"", '12 km/h = 5:00 per km');
+assert.equal(formatPace(10.5), "5'43\"", '10.5 km/h = 5:43 per km');
+assert.equal(formatPace(1), '–', 'standing still has no pace');
+assert.equal(defaultRideName(new Date(2026, 9, 30, 6, 0).getTime(), 'run'), 'Lari Pagi');
+assert.equal(defaultRideName(new Date(2026, 9, 30, 19, 0).getTime()), 'Gowes Malam');
+near(activityKcal({ ...s, distanceM: 5000 }, 70, 'run'), 350, 0.01, 'run kcal ~ 1 per kg per km');
 
 console.log('ride self-check: all assertions passed');

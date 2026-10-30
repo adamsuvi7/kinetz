@@ -4,13 +4,13 @@
 import { drawImageCover, drawRoundRectPath } from './draw';
 import { LOGO_GREEN, MARK_H, MARK_W, drawMark } from './logo';
 import {
-  cyclingKcal, fitRoute, formatDuration, formatKm, formatRideDate, formatSpeed, rideStats,
-  type Ride, type RideStats, type Segments,
+  activityKcal, fitRoute, formatDuration, formatKm, formatPace, formatRideDate, formatSpeed, rideStats,
+  type Ride, type RideStats, type Segments, type Sport,
 } from './ride';
 
 export type Swatch = 'white' | 'green' | 'lime' | 'orange' | 'black';
 export type StatKey = 'distance' | 'moving' | 'avgSpeed' | 'maxSpeed' | 'elevation' | 'calories' | 'elapsed';
-type Icon = 'pin' | 'bolt' | 'watch' | 'gauge' | 'mountain' | 'flame' | 'bike';
+type Icon = 'pin' | 'bolt' | 'watch' | 'gauge' | 'mountain' | 'flame' | 'bike' | 'shoe';
 
 type Base = { id: string; x: number; y: number; visible: boolean };
 export type TextLayer = Base & {
@@ -94,7 +94,7 @@ export const RIDE_TEMPLATES: RideTemplate[] = [
       tagline('tag-top', 'MOVE BETTER\nLIVE STRONGER', 82, 20),
       { id: 'stats', kind: 'stats', x: 84, y: 380, size: 1, stats: ['distance', 'avgSpeed', 'moving'], layout: 'icons', color: 'white', visible: true },
       { id: 'route', kind: 'route', x: 290, y: 1250, size: 330, color: 'green', markers: true, visible: true },
-      { id: 'badge', kind: 'badge', x: 82, y: 1500, text: 'Bersepeda', sub: 'OUTDOOR', size: 1, color: 'green', visible: true },
+      { id: 'badge', kind: 'badge', x: 82, y: 1500, text: '', sub: 'OUTDOOR', size: 1, color: 'green', visible: true },
       tagline('tag-bottom', 'SMALL STEPS\nBIG PROGRESS', 1580, 24),
     ],
   },
@@ -183,7 +183,16 @@ export const RIDE_TEMPLATES: RideTemplate[] = [
 
 export const DEFAULT_LAYERS = RIDE_TEMPLATES[0].layers;
 
-export function statValue(key: StatKey, s: RideStats, weightKg: number): { value: string; unit: string } {
+/** Runners read pace (min/km) where cyclists read speed. */
+export function statLabel(key: StatKey, sport: Sport = 'ride') {
+  if (sport === 'run' && key === 'avgSpeed') return 'PACE RATA-RATA';
+  if (sport === 'run' && key === 'maxSpeed') return 'PACE TERBAIK';
+  return STAT_LABELS[key];
+}
+
+export function statValue(key: StatKey, s: RideStats, weightKg: number, sport: Sport = 'ride'): { value: string; unit: string } {
+  if (sport === 'run' && key === 'avgSpeed') return { value: formatPace(s.avgKmh), unit: '/km' };
+  if (sport === 'run' && key === 'maxSpeed') return { value: formatPace(s.maxKmh), unit: '/km' };
   switch (key) {
     case 'distance': return { value: formatKm(s.distanceM), unit: 'km' };
     case 'moving': return { value: formatDuration(s.movingSec), unit: '' };
@@ -191,7 +200,7 @@ export function statValue(key: StatKey, s: RideStats, weightKg: number): { value
     case 'avgSpeed': return { value: formatSpeed(s.avgKmh), unit: 'km/jam' };
     case 'maxSpeed': return { value: formatSpeed(s.maxKmh), unit: 'km/jam' };
     case 'elevation': return { value: Math.round(s.elevGainM).toLocaleString('id-ID'), unit: 'm' };
-    case 'calories': return { value: Math.round(cyclingKcal(s, weightKg)).toLocaleString('id-ID'), unit: 'kkal' };
+    case 'calories': return { value: Math.round(activityKcal(s, weightKg, sport)).toLocaleString('id-ID'), unit: 'kkal' };
   }
 }
 
@@ -228,6 +237,11 @@ function drawIcon(ctx: CanvasRenderingContext2D, icon: Icon, x: number, y: numbe
     ctx.bezierCurveTo(...P(0.12, 0.88), ...P(0.18, 0.42), ...P(0.46, 0.05));
     ctx.bezierCurveTo(...P(0.52, 0.36), ...P(0.86, 0.44), ...P(0.82, 0.72));
     ctx.bezierCurveTo(...P(0.8, 0.88), ...P(0.64, 0.95), ...P(0.5, 0.95));
+  } else if (icon === 'shoe') {
+    line(P(0.06, 0.74), P(0.06, 0.5), P(0.28, 0.26), P(0.44, 0.4), P(0.7, 0.5), P(0.92, 0.58), P(0.96, 0.74), P(0.06, 0.74));
+    line(P(0.06, 0.66), P(0.95, 0.66));
+    line(P(0.3, 0.36), P(0.36, 0.44));
+    line(P(0.38, 0.32), P(0.44, 0.4));
   } else {
     // bike
     ctx.moveTo(...P(0.42, 0.66));
@@ -360,7 +374,7 @@ function drawText(ctx: CanvasRenderingContext2D, layer: TextLayer, text: string)
   return { x: left, y, w, h: boxH };
 }
 
-function drawStats(ctx: CanvasRenderingContext2D, layer: StatsLayer, stats: RideStats, weightKg: number): Box {
+function drawStats(ctx: CanvasRenderingContext2D, layer: StatsLayer, stats: RideStats, weightKg: number, sport: Sport): Box {
   const s = layer.size;
   const n = layer.stats.length;
   const color = COLORS[layer.color];
@@ -378,11 +392,11 @@ function drawStats(ctx: CanvasRenderingContext2D, layer: StatsLayer, stats: Ride
     let right = 0;
     layer.stats.forEach((key, i) => {
       const y = layer.y + i * rowH;
-      const { value, unit } = statValue(key, stats, weightKg);
+      const { value, unit } = statValue(key, stats, weightKg, sport);
       drawIcon(ctx, STAT_ICONS[key], layer.x, y - 2 * s, 46 * s, LOGO_GREEN);
       ctx.font = `600 ${36 * s}px ${BODY}`;
       ctx.fillStyle = layer.color === 'black' ? muted : 'rgba(255, 255, 255, 0.85)';
-      const label = sentenceCase(STAT_LABELS[key]);
+      const label = sentenceCase(statLabel(key, sport));
       ctx.fillText(label, textX, y);
       const labelW = ctx.measureText(label).width;
       ctx.font = `800 ${92 * s}px ${DISPLAY}`;
@@ -413,15 +427,16 @@ function drawStats(ctx: CanvasRenderingContext2D, layer: StatsLayer, stats: Ride
   layer.stats.forEach((key, i) => {
     const cx = layer.x + (i % cols) * colW;
     const cy = layer.y + Math.floor(i / cols) * rowH;
-    const { value, unit } = statValue(key, stats, weightKg);
+    const { value, unit } = statValue(key, stats, weightKg, sport);
     const maxW = colW - 16 * s; // shrink text that would run into the next column
 
+    const label = statLabel(key, sport);
     ctx.font = `700 ${24 * s}px ${BODY}`;
-    const labelSize = 24 * s * Math.min(1, maxW / ctx.measureText(STAT_LABELS[key]).width);
+    const labelSize = 24 * s * Math.min(1, maxW / ctx.measureText(label).width);
     ctx.font = `700 ${labelSize}px ${BODY}`;
     ctx.fillStyle = muted;
-    ctx.fillText(STAT_LABELS[key], cx, cy);
-    const labelW = ctx.measureText(STAT_LABELS[key]).width;
+    ctx.fillText(label, cx, cy);
+    const labelW = ctx.measureText(label).width;
 
     const measure = (size: number) => {
       ctx.font = `800 ${size}px ${DISPLAY}`;
@@ -466,14 +481,15 @@ function drawBrand(ctx: CanvasRenderingContext2D, layer: BrandLayer): Box {
   return { x: left, y: layer.y, w, h: markH };
 }
 
-function drawBadge(ctx: CanvasRenderingContext2D, layer: BadgeLayer): Box {
+function drawBadge(ctx: CanvasRenderingContext2D, layer: BadgeLayer, sport: Sport): Box {
   const s = layer.size;
+  const text = layer.text.trim() || (sport === 'run' ? 'Lari' : 'Bersepeda');
   const iconX = layer.x + 26 * s;
   const textX = layer.x + 112 * s;
   ctx.save();
   ctx.textBaseline = 'top';
   ctx.font = `600 ${34 * s}px ${BODY}`;
-  const tw = ctx.measureText(layer.text).width;
+  const tw = ctx.measureText(text).width;
   ctx.font = `600 ${20 * s}px ${BODY}`;
   ctx.letterSpacing = `${6 * s}px`;
   const sw = ctx.measureText(layer.sub).width;
@@ -485,13 +501,13 @@ function drawBadge(ctx: CanvasRenderingContext2D, layer: BadgeLayer): Box {
   drawRoundRectPath(ctx, layer.x, layer.y, w, h, 26 * s);
   ctx.fill();
   ctx.stroke();
-  drawIcon(ctx, 'bike', iconX, layer.y + 26 * s, 64 * s, COLORS[layer.color]);
+  drawIcon(ctx, sport === 'run' ? 'shoe' : 'bike', iconX, layer.y + 26 * s, 64 * s, COLORS[layer.color]);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
   ctx.fillText(layer.sub, textX, layer.y + 70 * s);
   ctx.letterSpacing = '0px';
   ctx.font = `600 ${34 * s}px ${BODY}`;
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(layer.text, textX, layer.y + 24 * s);
+  ctx.fillText(text, textX, layer.y + 24 * s);
   ctx.restore();
   return { x: layer.x, y: layer.y, w, h };
 }
@@ -543,7 +559,8 @@ export function renderRideStory(canvas: HTMLCanvasElement, o: RideStoryOptions):
   const k = frameScale(h);
   const ox = (FRAME_W * (1 - k)) / 2;
   const boxes: Record<string, Box> = {};
-  const stats = o.ride ? rideStats(o.ride.segments) : null;
+  const sport = o.ride?.sport ?? 'ride';
+  const stats = o.ride ? rideStats(o.ride.segments, sport) : null;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -595,9 +612,9 @@ export function renderRideStory(canvas: HTMLCanvasElement, o: RideStoryOptions):
       }
       if (drawn || o.guides) b = box;
     } else if (layer.kind === 'stats') {
-      if (stats && layer.stats.length) b = drawStats(ctx, layer, stats, o.weightKg);
+      if (stats && layer.stats.length) b = drawStats(ctx, layer, stats, o.weightKg, sport);
     } else if (layer.kind === 'badge') {
-      b = drawBadge(ctx, layer);
+      b = drawBadge(ctx, layer, sport);
     } else if (layer.kind === 'decor') {
       if (layer.variant === 'stripes') b = drawStripes(ctx, layer);
       else {

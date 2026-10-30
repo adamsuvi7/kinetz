@@ -1,7 +1,7 @@
 'use client';
 
 import { formatKm, formatRideDate, rideStats, type Ride } from '@/lib/ride';
-import { COLORS, STAT_LABELS, sentenceCase, type Layer, type StatKey, type Swatch, type TextLayer } from '@/lib/story';
+import { COLORS, STAT_LABELS, sentenceCase, statLabel, type Layer, type StatKey, type Swatch, type TextLayer } from '@/lib/story';
 
 const LAYER_NAMES: Record<string, string> = {
   title: 'Judul', date: 'Tanggal', route: 'Rute GPS', stats: 'Statistik', hero: 'Angka utama', brand: 'Logo',
@@ -137,6 +137,7 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
                 value={selected.text}
                 onChange={(e) => patch(selected.id, { text: e.target.value })}
                 maxLength={20}
+                placeholder={ride?.sport === 'run' ? 'Kosongkan = Lari' : 'Kosongkan = Bersepeda'}
                 aria-label="Judul badge"
                 className="surface-card px-3 py-2 rounded-xl text-xs font-bold outline-none"
               />
@@ -222,11 +223,11 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
                 {(Object.keys(STAT_LABELS) as StatKey[]).map((k) => (
                   <label key={k} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
                     <input type="checkbox" checked={selected.stats.includes(k)} onChange={() => toggleStat(k)} className="accent-[#C8F526]" />
-                    {sentenceCase(STAT_LABELS[k])}
+                    {sentenceCase(statLabel(k, ride?.sport))}
                   </label>
                 ))}
               </div>
-              <p className="text-[10px] opacity-55">Maks {MAX_STATS} statistik. Kalori adalah estimasi dari kecepatan rata-rata dan berat badan.</p>
+              <p className="text-[10px] opacity-55">Maks {MAX_STATS} statistik. Kalori adalah estimasi dari jarak/kecepatan dan berat badan.</p>
             </>
           )}
 
