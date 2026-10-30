@@ -1,6 +1,6 @@
 // Run: npm test  (Node >= 22.6 strips the types natively)
 import assert from 'node:assert/strict';
-import { acceptFix, cyclingKcal, fitRoute, haversineM, rideStats, type TrackPoint } from '../lib/ride.ts';
+import { cyclingKcal, filterFix, fitRoute, haversineM, rideStats, type TrackPoint } from '../lib/ride.ts';
 
 const near = (a: number, b: number, tol: number, msg: string) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b}`);
 
@@ -36,13 +36,15 @@ near(s2.elapsedSec, 1200, 0.1, 'elapsed includes stop');
 const far = seg.map((p) => ({ ...p, lat: p.lat + 0.1, t: p.t + 3_600_000 }));
 near(rideStats([seg, far]).distanceM, 2 * s.distanceM, 10, 'gap between segments ignored');
 
-// Recorder filter
+// Recorder filter basics (realistic noise is covered by scripts/gps-noise-check.ts)
 const base = seg[0];
-assert.equal(acceptFix(undefined, base), true, 'first fix accepted');
-assert.equal(acceptFix(undefined, { ...base, acc: 80 }), false, 'inaccurate fix rejected');
-assert.equal(acceptFix(base, { ...base, t: base.t + 1000, lat: base.lat + 0.01 }), false, '1.1 km in 1 s = GPS jump rejected');
-assert.equal(acceptFix(base, { ...base, t: base.t + 2000, lat: base.lat + 1 / 111_195 }), false, '1 m jitter while stopped skipped');
-assert.equal(acceptFix(base, { ...base, t: base.t + 10_000 }), true, 'stationary heartbeat kept');
+const first = filterFix(null, undefined, base);
+assert.equal(first.point, null, 'first fix waits for confirmation');
+assert.equal(filterFix(null, undefined, { ...base, acc: 80 }).state, null, 'inaccurate fix ignored');
+const second = filterFix(first.state, undefined, seg[1]);
+assert.ok(second.point, 'second agreeing fix starts the track');
+const jump = filterFix(second.state, second.point!, { ...seg[2], lat: seg[2].lat + 0.01 });
+assert.equal(jump.point, null, '1.1 km in 1 s = GPS jump rejected');
 
 // Projection keeps route inside its box
 const pts = fitRoute([seg], 100, 200, 400, 400).flat();

@@ -25,11 +25,22 @@ export type RideStats = {
 
 const R_EARTH = 6371008.8;
 const MAX_ACCURACY_M = 35; // fixes worse than this are dropped
-const MAX_SPEED_MS = 120 / 3.6; // anything faster between two fixes is a GPS jump
+const FIRST_FIX_ACCURACY_M = 20; // the first fix anchors the track, so wait for a decent lock
+const MAX_SPEED_MS = 90 / 3.6; // fast descent on a bike; anything quicker between fixes is a GPS jump
+const ACCEL_NOISE = 1; // Kalman: expected acceleration (m/s²): braking, sprinting, turning a corner
+// Stop detection: staying within STILL_RADIUS for STILL_AFTER = stopped; the track holds its position
+// until the rider is clearly LEAVE_M away (GPS drifts several metres while standing at a traffic light).
+const STILL_RADIUS_M = 6;
+const STILL_AFTER_MS = 8000;
+const LEAVE_M = 20;
+const MIN_STEP_M = 8; // don't store points closer than this while moving (less zigzag, honest distance)
+const GATE_SIGMA = 4; // fixes further than this many standard deviations from the prediction are jumps
+const MAX_REJECTS = 5; // after this many rejected jumps in a row, trust the new position (e.g. leaving a tunnel)
+const GAP_RESET_S = 10; // after a longer signal loss, start a fresh estimate (it must be confirmed again)
 const MIN_MOVING_MS = 0.8; // ~3 km/h: below this the bike is considered stopped
 const MAX_GAP_S = 60; // longer gaps (signal loss) never count as moving time
 const ELEV_HYSTERESIS_M = 4; // GPS altitude jitters; only count climbs that persist
-const SPEED_WINDOW_S = 5;
+const SPEED_WINDOW_S = 10; // max speed is averaged over this long, so GPS jitter can't fake a sprint
 
 const toRad = (d: number) => (d * Math.PI) / 180;
 
@@ -40,16 +51,93 @@ export function haversineM(a: { lat: number; lon: number }, b: { lat: number; lo
   return 2 * R_EARTH * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** Decide whether a new fix should be appended after `prev` (the last kept point of the segment). */
-export function acceptFix(prev: TrackPoint | undefined, p: TrackPoint) {
-  if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon) || p.acc > MAX_ACCURACY_M) return false;
-  if (!prev) return true;
-  const dt = (p.t - prev.t) / 1000;
-  if (dt <= 0) return false;
-  const d = haversineM(prev, p);
-  if (d / dt > MAX_SPEED_MS) return false;
-  // Standing still: skip jitter, but keep a heartbeat point every 10 s so moving time stays honest.
-  return d >= 3 || dt >= 10;
+/**
+ * Constant-velocity Kalman estimate in local metres around (lat0, lon0); null = no estimate yet
+ * (start or after a pause). x/y = position, vx/vy = velocity; the covariance is the same for both axes.
+ */
+export type FilterState = {
+  lat0: number; lon0: number; kx: number; // metres per degree of longitude at lat0
+  x: number; y: number; vx: number; vy: number;
+  p00: number; p01: number; p11: number;
+  t: number; rejects: number;
+  /** False until a second fix agrees with the first one; nothing is recorded before that. */
+  confirmed: boolean;
+  /** Stop detection anchor (local metres) and since when the rider has stayed near it. */
+  ax: number; ay: number; at: number; still: boolean;
+} | null;
+
+const M_PER_DEG = (Math.PI / 180) * R_EARTH;
+
+/**
+ * Turns one raw GPS fix into the point to record (or null to skip it):
+ * accuracy gate → predict → reject jumps far outside the prediction → Kalman update weighted by the
+ * fix's accuracy → hold position while the estimated speed says the rider is standing still.
+ * Pure function; the caller keeps `state` between fixes and passes the last recorded point.
+ */
+export function filterFix(state: FilterState, last: TrackPoint | undefined, p: TrackPoint, maxSpeedMs = MAX_SPEED_MS): { state: FilterState; point: TrackPoint | null } {
+  if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon) || p.acc > (state ? MAX_ACCURACY_M : FIRST_FIX_ACCURACY_M)) return { state, point: null };
+  const r = p.acc ** 2;
+
+  let s = state;
+  if (s) {
+    const dt = (p.t - s.t) / 1000;
+    if (dt <= 0) return { state: s, point: null };
+    if (dt > GAP_RESET_S) s = null;
+  }
+  if (s) {
+    const dt = (p.t - s.t) / 1000;
+    // Predict (x += v·dt) and grow the uncertainty by the possible acceleration.
+    const q = ACCEL_NOISE ** 2;
+    const pred = {
+      x: s.x + s.vx * dt, y: s.y + s.vy * dt,
+      p00: s.p00 + 2 * dt * s.p01 + dt * dt * s.p11 + (q * dt ** 4) / 4,
+      p01: s.p01 + dt * s.p11 + (q * dt ** 3) / 2,
+      p11: s.p11 + q * dt * dt,
+    };
+    const zx = (p.lon - s.lon0) * s.kx, zy = (p.lat - s.lat0) * M_PER_DEG;
+    const ix = zx - pred.x, iy = zy - pred.y;
+    const sVar = pred.p00 + r;
+    // Multipath jump: far outside the prediction, or faster than anyone rides.
+    const jump = Math.hypot(ix, iy);
+    const tooFar = jump * jump > GATE_SIGMA ** 2 * sVar || jump > maxSpeedMs * dt + 3 * p.acc;
+    if (tooFar && s.confirmed && s.rejects < MAX_REJECTS) return { state: { ...s, rejects: s.rejects + 1 }, point: null };
+    if (tooFar) s = null; // consistently elsewhere: signal came back after a gap, start over from here
+    else {
+      const k0 = pred.p00 / sVar, k1 = pred.p01 / sVar;
+      s = {
+        ...s,
+        x: pred.x + k0 * ix, y: pred.y + k0 * iy,
+        vx: s.vx + k1 * ix, vy: s.vy + k1 * iy,
+        p00: (1 - k0) * pred.p00, p01: (1 - k0) * pred.p01, p11: pred.p11 - k1 * pred.p01,
+        t: p.t, rejects: 0, confirmed: true,
+      };
+    }
+  }
+  if (!s) {
+    // A single fix (first one, or the first after a tunnel) can be a reflection far off; wait until the
+    // next fix agrees with it before drawing anything.
+    // Start: position from this fix, speed unknown (variance of a fast bike).
+    s = {
+      lat0: p.lat, lon0: p.lon, kx: M_PER_DEG * Math.cos(toRad(p.lat)),
+      x: 0, y: 0, vx: 0, vy: 0, p00: r, p01: 0, p11: 100, t: p.t, rejects: 0, confirmed: false,
+      ax: 0, ay: 0, at: p.t, still: false,
+    };
+    return { state: s, point: null };
+  }
+
+  const fromAnchor = Math.hypot(s.x - s.ax, s.y - s.ay);
+  if (s.still) {
+    if (fromAnchor > LEAVE_M) s = { ...s, still: false, ax: s.x, ay: s.y, at: p.t };
+  } else if (fromAnchor > STILL_RADIUS_M) s = { ...s, ax: s.x, ay: s.y, at: p.t };
+  else if (p.t - s.at >= STILL_AFTER_MS) s = { ...s, still: true };
+
+  const point: TrackPoint = { lat: s.lat0 + s.y / M_PER_DEG, lon: s.lon0 + s.x / s.kx, t: p.t, alt: p.alt, acc: Math.sqrt(s.p00) };
+  if (!last) return { state: s, point };
+  if (!s.still && haversineM(last, point) >= MIN_STEP_M) return { state: s, point };
+  // Standing still: don't let jitter scribble on the map. Every 10 s add a point on the same spot,
+  // so the stop shows up as time without distance.
+  if (s.still && p.t - last.t >= 10_000) return { state: s, point: { ...last, t: p.t, alt: p.alt ?? last.alt } };
+  return { state: s, point: null };
 }
 
 export function rideStats(segments: Segments): RideStats {

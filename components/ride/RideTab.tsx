@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { isNative, openLocationSettings, startGps, type GpsError } from '@/lib/gps';
 import {
-  acceptFix, currentKmh, defaultRideName, formatClock, formatDuration, formatKm, formatRideDate, formatSpeed, rideStats,
-  type Ride, type Segments,
+  currentKmh, filterFix, defaultRideName, formatClock, formatDuration, formatKm, formatRideDate, formatSpeed, rideStats,
+  type FilterState, type Ride, type Segments,
 } from '@/lib/ride';
 import { drawRoute } from '@/lib/story';
 import { BUILD } from '@/lib/updater';
@@ -92,6 +92,8 @@ export default function RideTab() {
   const [now, setNow] = useState(() => Date.now());
   const active = s.activeRide;
   const status = active?.status ?? 'idle';
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   // Coming back from Android settings (permission or Location switched on): try again without extra taps.
   useEffect(() => {
@@ -106,17 +108,24 @@ export default function RideTab() {
     if (status !== 'recording') return;
     let stop: (() => void) | null = null;
     let cancelled = false;
+    // Smoothing state lives here (not in React state) so StrictMode's double-run updaters can't advance it twice.
+    let filter: FilterState = null;
+    let last = activeRef.current?.segments.at(-1)?.at(-1);
     setGpsError(null);
     startGps(
       (p) => {
         setAcc(p.acc);
         setGpsError(null);
+        const r = filterFix(filter, last, p);
+        filter = r.state;
+        if (!r.point) return;
+        const point = r.point;
+        last = point;
         set((prev) => {
           const a = prev.activeRide;
           if (!a || a.status !== 'recording') return prev;
           const seg = a.segments[a.segments.length - 1];
-          if (!acceptFix(seg[seg.length - 1], p)) return prev;
-          return { ...prev, activeRide: { ...a, segments: [...a.segments.slice(0, -1), [...seg, p]] } };
+          return { ...prev, activeRide: { ...a, segments: [...a.segments.slice(0, -1), [...seg, point]] } };
         });
       },
       setGpsError,
