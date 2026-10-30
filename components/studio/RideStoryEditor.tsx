@@ -1,13 +1,15 @@
 'use client';
 
 import { formatKm, formatRideDate, rideStats, type Ride } from '@/lib/ride';
-import { COLORS, DEFAULT_LAYERS, STAT_LABELS, type Layer, type StatKey, type Swatch, type TextLayer } from '@/lib/story';
+import { COLORS, STAT_LABELS, type Layer, type StatKey, type Swatch, type TextLayer } from '@/lib/story';
 
-const LAYER_NAMES: Record<string, string> = { title: 'Judul', date: 'Tanggal', route: 'Rute GPS', stats: 'Statistik', brand: 'Logo' };
+const LAYER_NAMES: Record<string, string> = {
+  title: 'Judul', date: 'Tanggal', route: 'Rute GPS', stats: 'Statistik', hero: 'Angka utama', brand: 'Logo',
+};
 const SIZE_RANGE: Record<Layer['kind'], [number, number, number]> = {
   text: [18, 160, 2],
   route: [240, 1000, 10],
-  stats: [0.6, 1.4, 0.05],
+  stats: [0.6, 2.2, 0.05],
   brand: [16, 80, 1],
 };
 const MAX_STATS = 6;
@@ -20,6 +22,7 @@ type Props = {
   rides: Ride[];
   ride: Ride | null;
   onPickRide: (id: string) => void;
+  onReset: () => void;
 };
 
 function Segmented<T extends string>({ value, options, onPick }: { value: T; options: [T, string][]; onPick: (v: T) => void }) {
@@ -36,7 +39,7 @@ function Segmented<T extends string>({ value, options, onPick }: { value: T; opt
 
 const layerName = (l: Layer) => LAYER_NAMES[l.id] ?? (l.kind === 'text' ? l.text || 'Teks' : l.id);
 
-export default function RideStoryEditor({ layers, onChange, selectedId, onSelect, rides, ride, onPickRide }: Props) {
+export default function RideStoryEditor({ layers, onChange, selectedId, onSelect, rides, ride, onPickRide, onReset }: Props) {
   const selected = layers.find((l) => l.id === selectedId) ?? null;
   const patch = (id: string, p: Partial<Layer>) => onChange(layers.map((l) => (l.id === id ? ({ ...l, ...p } as Layer) : l)));
 
@@ -94,10 +97,10 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
               {layerName(l)}
             </button>
           ))}
-          <button onClick={() => addText('event')} className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-dashed border-[#C8F526]/60 text-[#C8F526]">
+          <button onClick={() => addText('event')} className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-dashed border-[color:var(--accent)] text-[color:var(--accent)]">
             + Label Event
           </button>
-          <button onClick={() => addText('text')} className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-dashed border-white/25">
+          <button onClick={() => addText('text')} className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-dashed border-[color:var(--text-muted)]">
             + Teks
           </button>
         </div>
@@ -206,15 +209,8 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
         </div>
       )}
 
-      <button
-        onClick={() => {
-          if (!window.confirm('Kembalikan tata letak story ke awal? Teks dan label tambahan akan dihapus.')) return;
-          onChange(DEFAULT_LAYERS);
-          onSelect(null);
-        }}
-        className="text-[11px] opacity-60 underline"
-      >
-        Reset tata letak
+      <button onClick={onReset} className="text-[11px] opacity-60 underline">
+        Kembalikan ke template
       </button>
     </div>
   );

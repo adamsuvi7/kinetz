@@ -64,6 +64,7 @@ export type AppState = {
     showBadge: boolean;
     rideId: string | null;
     rideLayers: Layer[];
+    rideTemplate: string;
   };
 };
 
@@ -205,6 +206,7 @@ export const initialState: AppState = {
     showBadge: false,
     rideId: null,
     rideLayers: DEFAULT_LAYERS,
+    rideTemplate: 'klasik',
   },
 };
 

@@ -5,9 +5,10 @@ import { last, type AppState, type StudioTemplate } from '@/lib/state';
 import { renderStudioCanvas } from '@/lib/canvas';
 import { loadImageFile } from '@/lib/image';
 import { downloadCanvas, shareCanvas } from '@/lib/share';
-import { FRAME_H, renderRideStory, type Box, type Layer } from '@/lib/story';
+import { RIDE_TEMPLATES, frameScale, renderRideStory, type Box, type Layer, type RideTemplate } from '@/lib/story';
 import { useApp } from '../AppProvider';
 import RideStoryEditor from './RideStoryEditor';
+import TemplateGallery from './TemplateGallery';
 
 const TEMPLATES: { tpl: StudioTemplate; label: string }[] = [
   { tpl: 'ride', label: '🚴 Ride GPS' },
@@ -30,7 +31,7 @@ export default function StudioTab() {
   const [layers, setLayers] = useState<Layer[]>(st.rideLayers);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const boxesRef = useRef<Record<string, Box>>({});
-  const dragRef = useRef<{ id: string; px: number; py: number; x: number; y: number } | null>(null);
+  const dragRef = useRef<{ id: string; px: number; py: number; x: number; y: number; box: Box } | null>(null);
   const ride = s.rides.find((r) => r.id === st.rideId) ?? s.rides[0] ?? null;
   const weightKg = last(s.bodyHistory.weight) || 72;
 
@@ -71,18 +72,32 @@ export default function StudioTab() {
     setSelectedId(hit?.id ?? null);
     if (!hit) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = { id: hit.id, px: p.x, py: p.y, x: hit.x, y: hit.y };
+    dragRef.current = { id: hit.id, px: p.x, py: p.y, x: hit.x, y: hit.y, box: boxesRef.current[hit.id] };
   };
 
   const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
     const d = dragRef.current;
     if (!d) return;
+    const c = e.currentTarget;
     const p = toCanvas(e);
-    const ky = FRAME_H / e.currentTarget.height;
-    setLayers((ls) => ls.map((l) => (l.id === d.id ? { ...l, x: Math.round(d.x + p.x - d.px), y: Math.round(d.y + (p.y - d.py) * ky) } : l)));
+    const k = frameScale(c.height);
+    // Keep the layer's whole box inside the story so it can't be dragged off and lost.
+    const clamp = (delta: number, lo: number, hi: number) => Math.min(Math.max(delta, Math.min(lo, hi)), Math.max(lo, hi));
+    const dx = clamp(p.x - d.px, -d.box.x, c.width - d.box.x - d.box.w);
+    const dy = clamp(p.y - d.py, -d.box.y, c.height - d.box.y - d.box.h);
+    setLayers((ls) => ls.map((l) => (l.id === d.id ? { ...l, x: Math.round(d.x + dx / k), y: Math.round(d.y + dy / k) } : l)));
   };
 
   const endDrag = () => (dragRef.current = null);
+
+  const applyTemplate = (t: RideTemplate) => {
+    const current = RIDE_TEMPLATES.find((x) => x.id === st.rideTemplate);
+    const edited = !current || JSON.stringify(current.layers) !== JSON.stringify(layers);
+    if (edited && !window.confirm(`Pakai template "${t.name}"? Perubahan tata letak saat ini akan diganti.`)) return;
+    setLayers(structuredClone(t.layers));
+    setSelectedId(null);
+    setStudio({ rideTemplate: t.id, transparent: t.transparent });
+  };
 
   // Exports never include the editor guides or the selection outline.
   const exportCanvas = () => {
@@ -186,6 +201,10 @@ export default function StudioTab() {
           </div>
         </div>
 
+        {isRide && (
+          <TemplateGallery activeId={st.rideTemplate} onPick={applyTemplate} ride={ride} weightKg={weightKg} bgImage={st.bgImage} fontsReady={fontsReady} />
+        )}
+
         {/* Canvas Preview: 1080x1920 (9:16) or 1080x1350 (4:5) */}
         <div className="flex justify-center my-3">
           <div
@@ -200,10 +219,12 @@ export default function StudioTab() {
               onPointerMove={onPointerMove}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
-              className={`w-full h-auto block${isRide ? ' touch-none cursor-move' : ''}`}
+              // Page scroll stays available until a layer is selected; then the canvas owns the touch for dragging.
+              className={`w-full h-auto block${isRide ? (selectedId ? ' touch-none cursor-move' : ' touch-pan-y cursor-pointer') : ''}`}
             ></canvas>
           </div>
         </div>
+        {isRide && <p className="text-center text-[10px] opacity-55 -mt-1 mb-3">Ketuk elemen untuk memilih, lalu seret untuk memindahkan.</p>}
 
         {isRide && (
           <div className="mb-3">
@@ -215,6 +236,7 @@ export default function StudioTab() {
               rides={s.rides}
               ride={ride}
               onPickRide={(id) => setStudio({ rideId: id })}
+              onReset={() => applyTemplate(RIDE_TEMPLATES.find((t) => t.id === st.rideTemplate) ?? RIDE_TEMPLATES[0])}
             />
           </div>
         )}
