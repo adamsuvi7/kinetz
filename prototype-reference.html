@@ -1,0 +1,2509 @@
+<!DOCTYPE html>
+<html lang="id" class="theme-dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FITSYNC — Hybrid Gym, Strava GPS, AI Nutrition & Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0E110F;
+      --bg-card: #161B18;
+      --bg-card-alt: #1D2420;
+      --text-main: #F3F7F4;
+      --text-muted: #8E9B93;
+      --accent: #C8F526;
+      --accent-soft: rgba(200, 245, 38, 0.14);
+      --border-col: rgba(255, 255, 255, 0.08);
+      --sage-grad-start: #1E3528;
+      --sage-grad-end: #2E563E;
+      --pill-bg: #1B221E;
+    }
+
+    html.theme-light {
+      --bg-main: #F2F7F1;
+      --bg-card: #FFFFFF;
+      --bg-card-alt: #EAF3E8;
+      --text-main: #132018;
+      --text-muted: #5C6F62;
+      --accent: #438257;
+      --accent-soft: #DFF58E;
+      --border-col: rgba(19, 32, 24, 0.08);
+      --sage-grad-start: #438257;
+      --sage-grad-end: #83BD7E;
+      --pill-bg: #EDF5EB;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .app-shell {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: 108px;
+      position: relative;
+    }
+
+    .surface-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-col);
+      border-radius: 24px;
+      transition: all 0.2s ease;
+    }
+
+    .surface-card-alt {
+      background-color: var(--bg-card-alt);
+      border: 1px solid var(--border-col);
+      border-radius: 18px;
+    }
+
+    .sage-hero-card {
+      background: linear-gradient(135deg, var(--sage-grad-start) 0%, var(--sage-grad-end) 100%);
+      border-radius: 26px;
+      color: #FFFFFF;
+      box-shadow: 0 12px 28px -8px rgba(67, 130, 87, 0.35);
+    }
+
+    .lime-btn {
+      background-color: #C8F526;
+      color: #0E110F;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    html.theme-light .lime-btn {
+      background-color: #DFF58E;
+      color: #132018;
+    }
+    .lime-btn:active {
+      transform: scale(0.97);
+    }
+
+    .pill-stat {
+      background-color: var(--pill-bg);
+      border: 1px solid var(--border-col);
+      border-radius: 16px;
+    }
+
+    .bottom-dock {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 28px);
+      max-width: 452px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-col);
+      border-radius: 9999px;
+      padding: 8px;
+      z-index: 40;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+    }
+
+    .nav-item.active {
+      background-color: #C8F526;
+      color: #0E110F;
+      padding: 10px 18px;
+    }
+    html.theme-light .nav-item.active {
+      background-color: #DFF58E;
+      color: #132018;
+    }
+
+    /* Slotted Consistency Bars */
+    .slotted-bar-track {
+      height: 128px;
+      width: 28px;
+      background: rgba(142, 155, 147, 0.12);
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+    .slotted-bar-fill {
+      width: 100%;
+      background: linear-gradient(180deg, rgba(200,245,38,0.28) 0%, rgba(200,245,38,0.06) 100%);
+      border-top: 3px solid #C8F526;
+      border-radius: 6px 6px 0 0;
+      position: relative;
+      transition: height 0.4s ease;
+    }
+    html.theme-light .slotted-bar-fill {
+      background: linear-gradient(180deg, rgba(67,130,87,0.35) 0%, rgba(67,130,87,0.08) 100%);
+      border-top: 3px solid #438257;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .muscle-part {
+      transition: fill 0.3s ease, filter 0.3s ease;
+    }
+    .muscle-active {
+      fill: #C8F526 !important;
+      filter: drop-shadow(0 0 8px rgba(200, 245, 38, 0.65));
+    }
+    html.theme-light .muscle-active {
+      fill: #438257 !important;
+      filter: drop-shadow(0 0 6px rgba(67, 130, 87, 0.5));
+    }
+
+    @keyframes pulseBeacon {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.25); opacity: 0.65; }
+    }
+    .beacon-dot {
+      animation: pulseBeacon 1.6s infinite;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell px-4 pt-3">
+  <!-- TOP STATUS & ACTION BAR -->
+  <header class="flex items-center justify-between py-2 mb-3">
+    <div class="flex items-center gap-3">
+      <div class="relative">
+        <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#438257] to-[#C8F526] p-0.5">
+          <div class="w-full h-full rounded-full bg-[#161B18] flex items-center justify-center font-display font-bold text-sm text-[#C8F526]">
+            AS
+          </div>
+        </div>
+        <span id="offlineStatusDot" class="w-3 h-3 rounded-full bg-[#C8F526] border-2 border-[#0E110F] absolute -bottom-0.5 -right-0.5" title="Offline-First IndexedDB Ready"></span>
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-[11px] font-medium opacity-75">Keep Moving Today! 💪</span>
+          <span id="bleBadge" onclick="toggleBleHr()" class="cursor-pointer text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30">
+            ♥ BLE 74 bpm
+          </span>
+        </div>
+        <h1 class="text-base font-extrabold tracking-tight leading-tight">Hi, Athlete FitSync</h1>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1.5">
+      <!-- Beacon SafeLink Trigger -->
+      <button onclick="openBeaconModal()" class="p-2 rounded-full surface-card-alt text-xs font-bold flex items-center gap-1" title="Strava Beacon SafeLink">
+        <span class="w-2 h-2 rounded-full bg-amber-400 beacon-dot"></span>
+        <span class="hidden sm:inline text-[11px]">Beacon</span>
+      </button>
+      <!-- Live Camera Trigger -->
+      <button onclick="openLiveCameraModal()" class="p-2 rounded-full surface-card-alt text-xs font-bold" title="Kamera IG Story & AI Food">
+        📷
+      </button>
+      <!-- Theme Switcher -->
+      <button onclick="toggleTheme()" id="themeBtn" class="px-2.5 py-2 rounded-full surface-card-alt text-[11px] font-bold">
+        ☀️ Sage
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       TAB 1: HOME (DASHBOARD, IF DIAL, AI INTELLIGENCE, SOCIAL)
+       ========================================================= -->
+  <section id="tab-home" class="space-y-4">
+    <!-- YOUR PROGRESS CARD (Mockup 1 & 2 Replica) -->
+    <div class="sage-hero-card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <span class="text-[11px] uppercase tracking-wider opacity-85 font-semibold">Your Progress</span>
+          <h2 class="text-lg font-extrabold leading-none mt-0.5">Weekly Streak & Macro</h2>
+        </div>
+        <button onclick="switchTab('nutrition')" class="text-xs bg-white/20 hover:bg-white/30 backdrop-blur px-3 py-1 rounded-full font-semibold flex items-center gap-1">
+          <span>Weeks</span>
+          <span>▾</span>
+        </button>
+      </div>
+
+      <!-- 6 Day Circles (✓, ✓, 16, 17, 18, 19) -->
+      <div id="homeProgressCircles" class="grid grid-cols-6 gap-2 my-2"></div>
+
+      <div class="flex items-center justify-between text-[11px] opacity-90 mt-2 pt-2 border-t border-white/15">
+        <span>🎯 Target TDEE: <strong id="homeTdeeVal">2,150</strong> kcal</span>
+        <span>🥩 Protein: <strong id="homeProteinVal">138 / 150g</strong></span>
+      </div>
+    </div>
+
+    <!-- 3 METRIC PILLS (Calories, Steps, Heartbeat - Mockup 1 & 2) -->
+    <div class="grid grid-cols-3 gap-2.5">
+      <div class="pill-stat p-3 flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-[#438257]/25 text-[#C8F526] flex items-center justify-center font-bold text-sm">🔥</div>
+        <div>
+          <div id="pillCalories" class="font-display font-bold text-sm leading-tight">943</div>
+          <div class="text-[10px] opacity-65">Calories</div>
+        </div>
+      </div>
+      <div class="pill-stat p-3 flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-[#438257]/25 text-[#C8F526] flex items-center justify-center font-bold text-sm">🏃</div>
+        <div>
+          <div id="pillSteps" class="font-display font-bold text-sm leading-tight">5.635</div>
+          <div class="text-[10px] opacity-65">Steps</div>
+        </div>
+      </div>
+      <div class="pill-stat p-3 flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-[#438257]/25 text-[#C8F526] flex items-center justify-center font-bold text-sm">💚</div>
+        <div>
+          <div id="pillHeart" class="font-display font-bold text-sm leading-tight">142 bpm</div>
+          <div class="text-[10px] opacity-65">Heartbeat</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FITSYNC ATHLETE INTELLIGENCE (ATM Strava AI Subscription Feature) -->
+    <div class="surface-card p-4 relative overflow-hidden">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#C8F526] text-[#0E110F]">AI ATHLETE INTELLIGENCE</span>
+          <span class="text-[11px] opacity-65">Readiness: <strong id="aiReadinessScore" class="text-[#C8F526]">88% Optimal</strong></span>
+        </div>
+        <button onclick="refreshAiIntelligence()" class="text-[11px] opacity-70 hover:opacity-100 font-semibold">↻ Analisis</button>
+      </div>
+      <p id="aiIntelligenceText" class="text-xs leading-relaxed opacity-90">
+        Volume Push Day kamu naik <strong>+8.4%</strong> minggu ini dengan asupan protein <strong>92% terpenuhi (138g/150g)</strong>. Lingkar pinggang turun <strong>-1.8 cm</strong> dalam 14 hari terakhir (indikasi <em>body recomposition</em> positif). Kamu siap mengejar PB Lari 5K di pace <strong>5'10"/km</strong> sore ini!
+      </p>
+    </div>
+
+    <!-- TRAINING SCHEDULE & IF / OMAD DIAL GAUGE (Mockup 3 Replica) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h3 class="text-sm font-bold">Training Schedule & IF Window</h3>
+          <p class="text-[11px] opacity-65">Jadwal Latihan & Protokol Puasa Interaktif</p>
+        </div>
+        <select id="fastingProtocolSelect" onchange="changeFastingProtocol(this.value)" class="surface-card-alt text-[11px] font-bold px-2.5 py-1.5 rounded-lg outline-none">
+          <option value="16:8">IF 16:8 (Lean Cut)</option>
+          <option value="18:6">IF 18:6 (Fat Burn)</option>
+          <option value="20:4">IF 20:4 (Warrior)</option>
+          <option value="23:1">OMAD 23:1</option>
+        </select>
+      </div>
+
+      <!-- Semi-Circle Gauge SVG -->
+      <div class="flex flex-col items-center justify-center my-1">
+        <svg viewBox="0 0 240 125" class="w-60 h-32">
+          <!-- Tick marks -->
+          <g id="gaugeTicks" stroke="currentColor" class="opacity-25"></g>
+          <!-- Active Arc -->
+          <path d="M 25 110 A 95 95 0 0 1 215 110" fill="none" stroke="rgba(142,155,147,0.15)" stroke-width="10" stroke-linecap="round"/>
+          <path id="fastingArcPath" d="M 25 110 A 95 95 0 0 1 185 45" fill="none" stroke="#C8F526" stroke-width="10" stroke-linecap="round"/>
+          <!-- Center Indicator Pointer -->
+          <line x1="120" y1="62" x2="120" y2="22" stroke="#C8F526" stroke-width="2.5" stroke-linecap="round" />
+          <circle cx="120" cy="62" r="4" fill="#C8F526" />
+          <text id="scheduleTimeText" x="120" y="92" text-anchor="middle" fill="currentColor" class="font-display font-bold text-xl">6:00 PM</text>
+          <text id="fastingCountdownText" x="120" y="112" text-anchor="middle" fill="#8E9B93" class="font-display text-xs">14:22:09</text>
+        </svg>
+      </div>
+
+      <!-- Weekly Schedule Selector Pill Bar -->
+      <div id="weeklyPlannerBar" class="grid grid-cols-7 gap-1.5 mt-2"></div>
+    </div>
+
+    <!-- TODAY'S WORKOUT WITH ANATOMICAL MUSCLE HEATMAP (Mockup 3 Replica) -->
+    <div class="surface-card p-4 relative overflow-hidden">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="text-[11px] uppercase font-bold tracking-wider opacity-60">Today's Workout</span>
+          <h3 id="homeSplitTitle" class="text-lg font-extrabold mt-0.5">Push Day (Hypertrophy)</h3>
+          <p id="homeSplitMeta" class="text-xs text-[#C8F526] font-semibold">620 kcal • Chest, Shoulders, Triceps</p>
+        </div>
+        <div class="flex gap-1">
+          <button onclick="QuickSelectHomeSplit('Push')" class="px-2 py-1 rounded-lg text-[10px] font-bold surface-card-alt">Push</button>
+          <button onclick="QuickSelectHomeSplit('Pull')" class="px-2 py-1 rounded-lg text-[10px] font-bold surface-card-alt">Pull</button>
+          <button onclick="QuickSelectHomeSplit('Legs')" class="px-2 py-1 rounded-lg text-[10px] font-bold surface-card-alt">Legs</button>
+        </div>
+      </div>
+
+      <!-- Anatomical Body SVG + Floating Pills -->
+      <div class="relative flex items-center justify-center py-4 min-h-[220px]">
+        <!-- Left Floating Pill -->
+        <div class="absolute left-1 top-1/2 -translate-y-1/2 surface-card-alt px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold shadow-lg">
+          <span class="w-2 h-2 rounded-full bg-[#C8F526]"></span>
+          <span id="homeFloatDuration">55 Min</span>
+        </div>
+
+        <!-- Muscle Anatomy SVG -->
+        <svg viewBox="0 0 200 240" class="w-44 h-52">
+          <!-- Head & Neck -->
+          <circle cx="100" cy="26" r="16" fill="#2B332E" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+          <rect x="93" y="42" width="14" height="10" rx="4" fill="#2B332E"/>
+          <!-- Shoulders (Delts) -->
+          <path id="muscle-shoulders-l" class="muscle-part muscle-active" d="M62 54 Q75 46 86 54 L84 78 Q66 76 60 66 Z" fill="#39443D"/>
+          <path id="muscle-shoulders-r" class="muscle-part muscle-active" d="M138 54 Q125 46 114 54 L116 78 Q134 76 140 66 Z" fill="#39443D"/>
+          <!-- Chest (Pecs) -->
+          <path id="muscle-chest-l" class="muscle-part muscle-active" d="M76 54 L99 54 L99 84 Q82 86 75 74 Z" fill="#39443D"/>
+          <path id="muscle-chest-r" class="muscle-part muscle-active" d="M101 54 L124 54 L125 74 Q118 86 101 84 Z" fill="#39443D"/>
+          <!-- Core / Abs -->
+          <rect id="muscle-abs" class="muscle-part" x="82" y="86" width="36" height="46" rx="8" fill="#333D37"/>
+          <!-- Arms (Biceps / Triceps) -->
+          <rect id="muscle-arms-l" class="muscle-part muscle-active" x="52" y="76" width="16" height="48" rx="8" fill="#333D37"/>
+          <rect id="muscle-arms-r" class="muscle-part muscle-active" x="132" y="76" width="16" height="48" rx="8" fill="#333D37"/>
+          <!-- Quads / Legs -->
+          <path id="muscle-legs-l" class="muscle-part" d="M78 135 L98 135 L95 205 L76 205 Z" fill="#2E3832"/>
+          <path id="muscle-legs-r" class="muscle-part" d="M102 135 L122 135 L124 205 L105 205 Z" fill="#2E3832"/>
+          <!-- Calves -->
+          <rect id="muscle-calves-l" class="muscle-part" x="78" y="208" width="15" height="26" rx="6" fill="#28302B"/>
+          <rect id="muscle-calves-r" class="muscle-part" x="107" y="208" width="15" height="26" rx="6" fill="#28302B"/>
+        </svg>
+
+        <!-- Right Floating Pill -->
+        <div class="absolute right-1 top-2/3 surface-card-alt px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold shadow-lg">
+          <span class="w-2 h-2 rounded-full bg-[#C8F526]"></span>
+          <span id="homeFloatExercises">15 Sets • 2 PR</span>
+        </div>
+
+        <!-- Bottom-Right Lime Spark Action Button (Mockup 3 Replica) -->
+        <button onclick="switchTab('workout')" class="lime-btn w-11 h-11 rounded-2xl absolute bottom-1 right-1 flex items-center justify-center text-lg shadow-lg" title="Mulai Latihan">
+          ✦
+        </button>
+      </div>
+    </div>
+
+    <!-- CATEGORIES (Strength, Cardio, Stretching, Mobility - Mockup 1 & 2) -->
+    <div>
+      <div class="flex items-center justify-between mb-2.5">
+        <h3 class="text-sm font-bold">Categories & Multi-Sport</h3>
+        <button onclick="switchTab('workout')" class="text-xs opacity-65 font-semibold">See All →</button>
+      </div>
+      <div class="grid grid-cols-4 gap-2.5 text-center">
+        <button onclick="openCategoryQuick('gym')" class="surface-card p-3 flex flex-col items-center gap-1.5 hover:border-[#C8F526]">
+          <span class="text-2xl">🏋️</span>
+          <span class="text-[11px] font-bold">Strength</span>
+        </button>
+        <button onclick="openCategoryQuick('run')" class="surface-card p-3 flex flex-col items-center gap-1.5 hover:border-[#C8F526]">
+          <span class="text-2xl">🏃</span>
+          <span class="text-[11px] font-bold">Strava Run</span>
+        </button>
+        <button onclick="openCategoryQuick('cycle')" class="surface-card p-3 flex flex-col items-center gap-1.5 hover:border-[#C8F526]">
+          <span class="text-2xl">🚴</span>
+          <span class="text-[11px] font-bold">Cycling</span>
+        </button>
+        <button onclick="openCategoryQuick('multisport')" class="surface-card p-3 flex flex-col items-center gap-1.5 hover:border-[#C8F526]">
+          <span class="text-2xl">🎾</span>
+          <span class="text-[11px] font-bold">Padel/Sport</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MONTHLY CHALLENGES TROPHY CABINET (Strava Subscription ATM) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-sm font-bold">🏆 Monthly Challenges (Strava Hybrid)</h3>
+          <p class="text-[11px] opacity-65">Kumpulkan lencana & tempel ke IG Story 9:16</p>
+        </div>
+        <span class="text-[11px] font-bold text-[#C8F526]">3 Aktif</span>
+      </div>
+      <div id="challengesList" class="space-y-3"></div>
+    </div>
+
+    <!-- SOCIAL FEED: KUDOS, PR FISTBUMP & COMMENTS (Strava Social ATM) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-sm font-bold">🌐 FitSync Club Feed (Kudos & PR)</h3>
+          <p class="text-[11px] opacity-65">Berikan Kudos 👍 atau PR Fistbump 🔥 ke sesama atlet</p>
+        </div>
+        <button onclick="switchTab('studio')" class="text-[11px] font-bold text-[#C8F526]">+ Post Story</button>
+      </div>
+      <div id="socialFeedContainer" class="space-y-3"></div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       TAB 2: WORKOUT & STRAVA GPS (GYM, LARI, SEPEDA/PADEL, KOM)
+       ========================================================= -->
+  <section id="tab-workout" class="space-y-4 hidden">
+    <!-- Mode Selector Sub-Tabs -->
+    <div class="grid grid-cols-4 gap-1.5 p-1 surface-card-alt rounded-2xl">
+      <button id="wsub-gym" onclick="switchWorkoutSub('gym')" class="py-2 rounded-xl text-xs font-bold lime-btn">🏋️ Gym</button>
+      <button id="wsub-run" onclick="switchWorkoutSub('run')" class="py-2 rounded-xl text-xs font-bold opacity-75">🏃 Lari</button>
+      <button id="wsub-multi" onclick="switchWorkoutSub('multi')" class="py-2 rounded-xl text-xs font-bold opacity-75">🚴 Multi</button>
+      <button id="wsub-kom" onclick="switchWorkoutSub('kom')" class="py-2 rounded-xl text-xs font-bold opacity-75">👑 KOM</button>
+    </div>
+
+    <!-- SUB-PANEL A: GYM LOGGER (PUSH/PULL/LEGS + 1RM PREDICTOR) -->
+    <div id="panel-workout-gym" class="space-y-4">
+      <div class="surface-card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-base font-extrabold">Gym Strength Logger</h2>
+            <p class="text-[11px] opacity-65">Pilih Split, catat Set/Beban, deteksi PR & 1RM</p>
+          </div>
+          <button onclick="exportCurrentToStudio('gym')" class="px-3 py-1.5 rounded-xl text-xs lime-btn">Share IG 9:16</button>
+        </div>
+
+        <!-- Split Selector Pills -->
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2" id="gymSplitButtons"></div>
+
+        <!-- Exercise Selector to Add -->
+        <div class="flex gap-2 mt-2">
+          <select id="gymExercisePicker" class="flex-1 surface-card-alt px-3 py-2 rounded-xl text-xs font-semibold outline-none"></select>
+          <button onclick="addGymSetRow()" class="px-3.5 py-2 rounded-xl text-xs lime-btn">+ Set</button>
+        </div>
+      </div>
+
+      <!-- Workout Summary Pills (Mockup 1 & 2 Replica) -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="pill-stat p-3 text-center">
+          <div id="gymTotalVolume" class="font-display font-bold text-base text-[#C8F526]">5.580 KG</div>
+          <div class="text-[10px] opacity-65">Total Volume</div>
+        </div>
+        <div class="pill-stat p-3 text-center">
+          <div id="gymCompletedSets" class="font-display font-bold text-base">15 SETS</div>
+          <div class="text-[10px] opacity-65">Completed Sets</div>
+        </div>
+        <div class="pill-stat p-3 text-center">
+          <div id="gymPrCount" class="font-display font-bold text-base text-amber-400">2 NEW PR 🔥</div>
+          <div class="text-[10px] opacity-65">Personal Records</div>
+        </div>
+      </div>
+
+      <!-- Gym Sets Interactive Table -->
+      <div class="surface-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider opacity-75">Daftar Gerakan & Beban</h3>
+          <span class="text-[11px] opacity-65">Klik ✓ untuk selesaikan set</span>
+        </div>
+        <div id="gymSetsList" class="space-y-2"></div>
+      </div>
+
+      <!-- 1RM Predictor & Relative Strength Ratio (Epley Formula) -->
+      <div class="surface-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-sm font-bold">⚡ 1-Rep Max (1RM) & Relative Strength</h3>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-[#C8F526]/15 text-[#C8F526] font-bold">Epley Formula</span>
+        </div>
+        <div id="gym1RmContainer" class="grid grid-cols-2 gap-2.5 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL B: STRAVA RUN (GPS, PACE, KM SPLITS, RACE PREDICTOR) -->
+    <div id="panel-workout-run" class="space-y-4 hidden">
+      <div class="surface-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">STRAVA GPS ENGINE</span>
+            <h2 class="text-base font-extrabold mt-1">Pelacak Lari & Peta 3D</h2>
+          </div>
+          <select id="runTypeSelect" onchange="changeRunPreset(this.value)" class="surface-card-alt text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none">
+            <option value="morning">Morning 5K Run</option>
+            <option value="tempo">Tempo Threshold 8K</option>
+            <option value="interval">Track Interval 400m</option>
+            <option value="long">Sunday Long Run 15K</option>
+          </select>
+        </div>
+
+        <!-- Interactive 3D-Style Route & Elevation Grade Canvas -->
+        <div class="relative rounded-2xl overflow-hidden border border-white/10 bg-[#0B100D]">
+          <canvas id="runRouteCanvas" width="440" height="230" class="w-full h-48 block"></canvas>
+          <div class="absolute top-2.5 left-2.5 flex gap-1.5">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/70 text-[#C8F526] backdrop-blur">🛰️ GPS Lock: Akurat 3m</span>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/70 text-white backdrop-blur">Elev: +118m (Grade 4.2%)</span>
+          </div>
+        </div>
+
+        <!-- 4 Core Run Telemetry Boxes -->
+        <div class="grid grid-cols-4 gap-2 my-3 text-center">
+          <div class="surface-card-alt p-2.5">
+            <div id="runDistVal" class="font-display font-bold text-base text-[#C8F526]">5.24</div>
+            <div class="text-[10px] opacity-65">Jarak (KM)</div>
+          </div>
+          <div class="surface-card-alt p-2.5">
+            <div id="runPaceVal" class="font-display font-bold text-base">5'14"</div>
+            <div class="text-[10px] opacity-65">Avg Pace /km</div>
+          </div>
+          <div class="surface-card-alt p-2.5">
+            <div id="runTimeVal" class="font-display font-bold text-base">27:26</div>
+            <div class="text-[10px] opacity-65">Moving Time</div>
+          </div>
+          <div class="surface-card-alt p-2.5">
+            <div id="runCadenceVal" class="font-display font-bold text-base text-emerald-400">176</div>
+            <div class="text-[10px] opacity-65">Cadence spm</div>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btnToggleRunTimer" onclick="toggleRunLiveTimer()" class="flex-1 py-2.5 rounded-xl text-xs lime-btn">▶ Mulai Live GPS Run</button>
+          <button onclick="exportCurrentToStudio('run')" class="px-4 py-2.5 rounded-xl text-xs surface-card-alt font-bold border border-[#C8F526]/40 text-[#C8F526]">Share Strava Story</button>
+        </div>
+      </div>
+
+      <!-- Splits per KM Table -->
+      <div class="surface-card p-4">
+        <h3 class="text-sm font-bold mb-2">📊 Splits per Kilometer & Grade</h3>
+        <div id="runSplitsTable" class="space-y-2 text-xs"></div>
+      </div>
+
+      <!-- Strava Race Predictor (5K, 10K, Half Marathon, Full Marathon) -->
+      <div class="surface-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h3 class="text-sm font-bold">🏁 Prediksi Waktu Finis Lomba (Race Predictor)</h3>
+            <p class="text-[11px] opacity-65">Dihitung otomatis dari performa lari kamu (Riegel Formula)</p>
+          </div>
+        </div>
+        <div id="racePredictorGrid" class="grid grid-cols-2 gap-2.5 mt-2"></div>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL C: MULTI-SPORT (CYCLING, PADEL, SWIM, HIKING) + BURN TARGET ROUTER -->
+    <div id="panel-workout-multi" class="space-y-4 hidden">
+      <div class="surface-card p-4">
+        <h2 class="text-base font-extrabold mb-1">Multi-Sport & Court Tracker</h2>
+        <p class="text-[11px] opacity-65 mb-3">Sepeda, Jalan, Hiking, Renang, hingga Olahraga Lapangan (Padel, Basket, Futsal)</p>
+
+        <div class="grid grid-cols-3 gap-2 mb-3" id="multiSportButtons"></div>
+
+        <div class="grid grid-cols-3 gap-2 text-center my-3">
+          <div class="surface-card-alt p-3">
+            <div id="multiDurationVal" class="font-display font-bold text-base">60 Min</div>
+            <div class="text-[10px] opacity-65">Durasi Aktif</div>
+          </div>
+          <div class="surface-card-alt p-3">
+            <div id="multiMetricVal" class="font-display font-bold text-base text-[#C8F526]">24.8 km/h</div>
+            <div class="text-[10px] opacity-65" id="multiMetricLabel">Avg Speed / Skor</div>
+          </div>
+          <div class="surface-card-alt p-3">
+            <div id="multiCaloriesVal" class="font-display font-bold text-base text-amber-400">540 kcal</div>
+            <div class="text-[10px] opacity-65">METs Burned</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 mb-3">
+          <label class="text-xs font-semibold opacity-75">Atur Durasi (Menit):</label>
+          <input type="range" id="multiDurationSlider" min="15" max="180" step="5" value="60" oninput="updateMultiSportDuration(this.value)" class="flex-1 accent-[#C8F526]" />
+        </div>
+
+        <button onclick="exportCurrentToStudio('cycle')" class="w-full py-2.5 rounded-xl text-xs lime-btn">Bagikan Sesi Olahraga ke IG Story 9:16</button>
+      </div>
+
+      <!-- Calorie-Target Route Planner ("Burn Target Router") -->
+      <div class="surface-card p-4">
+        <h3 class="text-sm font-bold mb-1">🧭 Perencana Rute Berbasis Target Kalori</h3>
+        <p class="text-[11px] opacity-65 mb-3">Masukkan kalori yang ingin dibakar, sistem merancang jarak lari & sepeda otomatis</p>
+        <div class="flex items-center gap-2 mb-3">
+          <input type="number" id="targetBurnInput" value="450" oninput="calculateBurnRoute()" class="w-28 surface-card-alt px-3 py-2 rounded-xl text-sm font-bold outline-none" />
+          <span class="text-xs opacity-75">kkal ingin dibakar</span>
+        </div>
+        <div id="burnRouteResult" class="grid grid-cols-2 gap-2.5 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL D: SEGMEN KOM / QOM & LOCAL LEGEND LEADERBOARD -->
+    <div id="panel-workout-kom" class="space-y-4 hidden">
+      <div class="surface-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h2 class="text-base font-extrabold">👑 Papan Peringkat Segmen (KOM & Iron Legend)</h2>
+            <p class="text-[11px] opacity-65">Kompetisi rute tercepat (KOM/QOM), Local Legend 90 Hari & Rasio Kekuatan Gym</p>
+          </div>
+        </div>
+        <div id="segmentsLeaderboardList" class="space-y-3 mt-3"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       TAB 3: AI NUTRITION, TDEE & CALENDAR (MOCKUP 2 REPLICA)
+       ========================================================= -->
+  <section id="tab-nutrition" class="space-y-4 hidden">
+    <!-- AI Food Vision Scanner -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">AI VISION SCANNER</span>
+          <h2 class="text-base font-extrabold mt-1">Foto Makanan → Hitung Kalori & Protein</h2>
+        </div>
+        <button onclick="openLiveCameraModal('food')" class="px-3 py-1.5 rounded-xl text-xs lime-btn">📷 Foto Piring</button>
+      </div>
+
+      <!-- Preset Quick Scan Indonesian Healthy Meals -->
+      <p class="text-[11px] opacity-65 mb-2">Coba pindai instan makanan atau unggah foto makananmu:</p>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <button onclick="scanPresetMeal(0)" class="surface-card-alt p-2.5 text-left hover:border-[#C8F526]">
+          <div class="text-base">🍗🍚</div>
+          <div class="text-[11px] font-bold mt-1">Ayam Bakar + Nasi</div>
+          <div class="text-[10px] text-[#C8F526]">540 kcal • 46g P</div>
+        </button>
+        <button onclick="scanPresetMeal(1)" class="surface-card-alt p-2.5 text-left hover:border-[#C8F526]">
+          <div class="text-base">🥩🥗</div>
+          <div class="text-[11px] font-bold mt-1">Sirloin Steak + Telur</div>
+          <div class="text-[10px] text-[#C8F526]">610 kcal • 54g P</div>
+        </button>
+        <button onclick="scanPresetMeal(2)" class="surface-card-alt p-2.5 text-left hover:border-[#C8F526]">
+          <div class="text-base">🐟🌶️</div>
+          <div class="text-[11px] font-bold mt-1">Ikan Bakar + Tempe</div>
+          <div class="text-[10px] text-[#C8F526]">480 kcal • 42g P</div>
+        </button>
+      </div>
+
+      <!-- AI Detection Breakdown Box + Portion Quick Adjust -->
+      <div id="aiMealResultBox" class="surface-card-alt p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div id="aiMealTitle" class="text-xs font-extrabold">Dada Ayam Bakar, Nasi Putih 150g & Tempe</div>
+            <div id="aiMealItems" class="text-[11px] opacity-70">Confidence AI: 96% • Diet IF 16:8 Compliant</div>
+          </div>
+          <span id="aiMealCalBadge" class="font-display font-bold text-sm text-[#C8F526]">540 kcal</span>
+        </div>
+
+        <div class="flex items-center gap-3 text-[11px]">
+          <span>🥩 Protein: <strong id="aiMealProt">46g</strong></span>
+          <span>🍚 Karbo: <strong id="aiMealCarb">52g</strong></span>
+          <span>🥑 Lemak: <strong id="aiMealFat">14g</strong></span>
+        </div>
+
+        <!-- Portion Multiplier Slider -->
+        <div class="pt-1">
+          <div class="flex justify-between text-[11px] mb-1">
+            <span>Koreksi Porsi Gramasi:</span>
+            <strong id="portionScaleLabel" class="text-[#C8F526]">100% (1.0x Porsi)</strong>
+          </div>
+          <input type="range" id="portionSlider" min="50" max="200" step="10" value="100" oninput="adjustMealPortion(this.value)" class="w-full accent-[#C8F526]" />
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="logCurrentAiMeal()" class="flex-1 py-2 rounded-xl text-xs lime-btn">+ Catat ke Kalori Harian</button>
+          <button onclick="exportCurrentToStudio('meal')" class="px-3 py-2 rounded-xl text-xs surface-card font-bold">Share IG</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TDEE & MACRO CALCULATOR (Mifflin-St Jeor) -->
+    <div class="surface-card p-4">
+      <h3 class="text-sm font-bold mb-2">⚙️ Kalkulator TDEE & Target Protein (Mifflin-St Jeor)</h3>
+      <div class="grid grid-cols-3 gap-2 text-xs mb-2.5">
+        <div>
+          <label class="text-[10px] opacity-65 block mb-1">Berat (kg)</label>
+          <input type="number" id="tdeeWeight" value="72" oninput="recalcTdee()" class="w-full surface-card-alt px-2.5 py-1.5 rounded-lg font-bold outline-none" />
+        </div>
+        <div>
+          <label class="text-[10px] opacity-65 block mb-1">Tinggi (cm)</label>
+          <input type="number" id="tdeeHeight" value="173" oninput="recalcTdee()" class="w-full surface-card-alt px-2.5 py-1.5 rounded-lg font-bold outline-none" />
+        </div>
+        <div>
+          <label class="text-[10px] opacity-65 block mb-1">Tujuan Diet</label>
+          <select id="tdeeGoal" onchange="recalcTdee()" class="w-full surface-card-alt px-2 py-1.5 rounded-lg font-bold outline-none">
+            <option value="-400">Cutting (-400)</option>
+            <option value="0">Maintenance</option>
+            <option value="250">Lean Bulk (+250)</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-center text-xs surface-card-alt p-2.5">
+        <div>
+          <div class="text-[10px] opacity-65">BMR Basal</div>
+          <div id="calcBmrOut" class="font-display font-bold text-sm">1,698 kcal</div>
+        </div>
+        <div>
+          <div class="text-[10px] opacity-65">Target Kalori</div>
+          <div id="calcTdeeOut" class="font-display font-bold text-sm text-[#C8F526]">2,150 kcal</div>
+        </div>
+        <div>
+          <div class="text-[10px] opacity-65">Target Protein</div>
+          <div id="calcProtOut" class="font-display font-bold text-sm text-emerald-400">150g / hari</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTHLY CALENDAR & WORKOUT SUMMARY (Mockup 2 Right Screen Replica) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-extrabold">Calendar</h3>
+        <span class="text-xs px-2.5 py-1 rounded-full surface-card-alt font-semibold">📅 Okt 1 - Okt 31</span>
+      </div>
+
+      <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold opacity-60 mb-2">
+        <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+      </div>
+      <div id="monthlyCalendarGrid" class="grid grid-cols-7 gap-1.5 text-center text-xs"></div>
+
+      <!-- Days Complete & Total Kcal Burned Pills (Mockup 2 Replica) -->
+      <div class="grid grid-cols-2 gap-2.5 mt-4">
+        <div class="pill-stat p-3 flex items-center justify-between">
+          <div>
+            <div class="text-[10px] opacity-65">Days Complete</div>
+            <div class="font-display font-bold text-base">24 / 30</div>
+          </div>
+          <span class="w-7 h-7 rounded-full bg-[#438257] text-white flex items-center justify-center text-xs">✓</span>
+        </div>
+        <div class="pill-stat p-3 flex items-center justify-between">
+          <div>
+            <div class="text-[10px] opacity-65">Total kcal burned</div>
+            <div class="font-display font-bold text-base">14.234</div>
+          </div>
+          <span class="w-7 h-7 rounded-full bg-[#438257] text-white flex items-center justify-center text-xs">🔥</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       TAB 4: ANALYTICS & BODY MEASUREMENTS (MOCKUP 3 REPLICA)
+       ========================================================= -->
+  <section id="tab-analytics" class="space-y-4 hidden">
+    <!-- Progress Goals (Mockup 3 Center Top Replica) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-2.5">
+        <h2 class="text-sm font-bold">Progress Goals</h2>
+        <span class="text-xs opacity-60">Body Recomposition</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="surface-card-alt p-3.5">
+          <div class="text-[11px] opacity-65">Target Weight</div>
+          <div class="font-display font-bold text-lg mt-1"><span id="goalCurrentWeight">72.0 KG</span> <span class="text-xs opacity-70">→ 68 KG</span></div>
+          <div class="text-[11px] text-[#C8F526] mt-1">78% Completed</div>
+        </div>
+        <div class="surface-card-alt p-3.5">
+          <div class="text-[11px] opacity-65">Waist & Muscle Delta</div>
+          <div class="font-display font-bold text-lg mt-1 text-[#C8F526]">-3.2 CM <span class="text-xs text-white opacity-80">Pinggang</span></div>
+          <div class="text-[11px] opacity-70 mt-1">Lean Mass Improving</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Insights: Weekly Consistency Slotted Bars (Mockup 3 Center Replica) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="text-sm font-bold">Performance Insights</h3>
+          <p class="text-[11px] opacity-65">Weekly Consistency & Macro Adherence</p>
+        </div>
+        <span class="text-[11px] px-2.5 py-1 rounded-lg surface-card-alt font-semibold">Filter | Week ▾</span>
+      </div>
+      <div id="weeklyConsistencyBars" class="flex items-end justify-between px-2 pt-2"></div>
+    </div>
+
+    <!-- Body Analytics Curve & Anthropometry Logger (Berat, Pinggang, Paha, Lengan, Dada) -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h3 class="text-sm font-bold">Body Analytics (Ukuran Tubuh)</h3>
+          <p class="text-[11px] opacity-65">Pilih metrik untuk melihat kurva progres</p>
+        </div>
+        <select id="bodyMetricSelector" onchange="renderBodyCurveChart()" class="surface-card-alt text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none">
+          <option value="weight">Berat Badan (kg)</option>
+          <option value="waist">Lingkar Pinggang (cm)</option>
+          <option value="thigh">Lingkar Paha (cm)</option>
+          <option value="arm">Lingkar Lengan (cm)</option>
+          <option value="chest">Lingkar Dada (cm)</option>
+        </select>
+      </div>
+
+      <!-- Smooth SVG Curve Chart (Mockup 3 Right Screen Replica) -->
+      <div class="surface-card-alt p-3 my-2">
+        <svg id="bodyAnalyticsSvg" viewBox="0 0 360 150" class="w-full h-36"></svg>
+      </div>
+
+      <!-- Quick Input Anthropometry Measurements -->
+      <div class="grid grid-cols-5 gap-1.5 text-center mt-3">
+        <div class="surface-card-alt p-2">
+          <label class="text-[9px] opacity-65 block">Berat (kg)</label>
+          <input id="inpWeight" type="number" step="0.1" value="72.0" class="w-full bg-transparent text-center font-display font-bold text-xs outline-none mt-0.5" />
+        </div>
+        <div class="surface-card-alt p-2">
+          <label class="text-[9px] opacity-65 block">Pinggang</label>
+          <input id="inpWaist" type="number" step="0.1" value="78.5" class="w-full bg-transparent text-center font-display font-bold text-xs outline-none mt-0.5 text-[#C8F526]" />
+        </div>
+        <div class="surface-card-alt p-2">
+          <label class="text-[9px] opacity-65 block">Paha (cm)</label>
+          <input id="inpThigh" type="number" step="0.1" value="56.0" class="w-full bg-transparent text-center font-display font-bold text-xs outline-none mt-0.5" />
+        </div>
+        <div class="surface-card-alt p-2">
+          <label class="text-[9px] opacity-65 block">Lengan</label>
+          <input id="inpArm" type="number" step="0.1" value="36.5" class="w-full bg-transparent text-center font-display font-bold text-xs outline-none mt-0.5" />
+        </div>
+        <div class="surface-card-alt p-2">
+          <label class="text-[9px] opacity-65 block">Dada (cm)</label>
+          <input id="inpChest" type="number" step="0.1" value="101.0" class="w-full bg-transparent text-center font-display font-bold text-xs outline-none mt-0.5" />
+        </div>
+      </div>
+      <button onclick="saveNewBodyMetrics()" class="w-full mt-2.5 py-2 rounded-xl text-xs lime-btn">Simpan Log Ukuran Tubuh Hari Ini</button>
+
+      <!-- BMI Score & Body Fat Cards (Mockup 3 Bottom Right Replica) -->
+      <div class="grid grid-cols-2 gap-2.5 mt-3">
+        <div class="surface-card-alt p-3">
+          <div class="text-[11px] opacity-65">BMI Score</div>
+          <div id="analyticsBmiVal" class="font-display font-bold text-lg mt-0.5">22.4 <span class="text-xs text-[#C8F526] font-normal">Normal</span></div>
+        </div>
+        <div class="surface-card-alt p-3">
+          <div class="text-[11px] opacity-65">Est. Body Fat</div>
+          <div id="analyticsBfVal" class="font-display font-bold text-lg mt-0.5">15.8% <span class="text-xs text-emerald-400 font-normal">Athletic</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strava Fitness, Freshness & Nutritional Recovery Chart -->
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h3 class="text-sm font-bold">📈 Fitness, Freshness & Nutritional Recovery</h3>
+          <p class="text-[11px] opacity-65">Kombinasi Beban Kardio/Gym vs Pemulihan Protein</p>
+        </div>
+        <span class="text-[11px] font-bold text-[#C8F526]">Form: +12 (Fresh)</span>
+      </div>
+      <svg id="fitnessFreshnessSvg" viewBox="0 0 360 120" class="w-full h-28 surface-card-alt p-2 rounded-xl"></svg>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       TAB 5: IG STORY 9:16 STUDIO (PRECISION LOWER SAFE-ZONE HUD)
+       ========================================================= -->
+  <section id="tab-studio" class="space-y-4 hidden">
+    <div class="surface-card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">1080×1920 IG STORY ENGINE</span>
+          <h2 class="text-base font-extrabold mt-1">Strava Social Share Studio</h2>
+        </div>
+        <div class="flex gap-1">
+          <button id="ratioBtn916" onclick="setStudioRatio('9:16')" class="px-2.5 py-1 rounded-lg text-[11px] lime-btn">9:16 Story</button>
+          <button id="ratioBtn45" onclick="setStudioRatio('4:5')" class="px-2.5 py-1 rounded-lg text-[11px] surface-card-alt font-bold">4:5 Feed</button>
+        </div>
+      </div>
+
+      <!-- Template Selector Pills -->
+      <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 my-1">
+        <button onclick="setStudioTemplate('gym')" id="tpl-gym" class="px-3 py-1.5 rounded-xl text-xs font-bold lime-btn whitespace-nowrap">🏋️ Gym Volume & PR</button>
+        <button onclick="setStudioTemplate('run')" id="tpl-run" class="px-3 py-1.5 rounded-xl text-xs font-bold surface-card-alt whitespace-nowrap">🏃 Strava Run GPS</button>
+        <button onclick="setStudioTemplate('cycle')" id="tpl-cycle" class="px-3 py-1.5 rounded-xl text-xs font-bold surface-card-alt whitespace-nowrap">🚴 Cycling / Sport</button>
+        <button onclick="setStudioTemplate('meal')" id="tpl-meal" class="px-3 py-1.5 rounded-xl text-xs font-bold surface-card-alt whitespace-nowrap">🍽️ AI Meal & IF</button>
+        <button onclick="setStudioTemplate('recomp')" id="tpl-recomp" class="px-3 py-1.5 rounded-xl text-xs font-bold surface-card-alt whitespace-nowrap">📏 Body & Trophy</button>
+      </div>
+
+      <!-- Precision Vertical Offset Slider for Lower 2x2 Metrics Grid -->
+      <div class="surface-card-alt p-3 my-2 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold">📐 Posisi Vertikal Blok Metrik Bawah:</span>
+          <span id="hudOffsetLabel" class="font-display font-bold text-[#C8F526]">Lower Safe-Zone (Presisi)</span>
+        </div>
+        <input type="range" id="hudVerticalOffsetSlider" min="-140" max="90" step="5" value="25" oninput="updateHudVerticalOffset(this.value)" class="w-full accent-[#C8F526]" />
+        <div class="flex items-center justify-between text-[11px] opacity-75 pt-1">
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="transparentStickerToggle" onchange="renderStudioCanvas()" class="accent-[#C8F526]" />
+            <span>Mode Stiker Transparan (PNG tanpa background)</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="showTrophyBadgeToggle" checked onchange="renderStudioCanvas()" class="accent-[#C8F526]" />
+            <span>Tampilkan Badge KOM/Trophy</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Canvas Preview Container -->
+      <div class="flex justify-center my-3">
+        <div class="w-full max-w-[300px] rounded-2xl overflow-hidden border border-white/15 shadow-2xl bg-[#090C0A]">
+          <canvas id="stravaStudioCanvas" width="1080" height="1920" class="w-full h-auto block"></canvas>
+        </div>
+      </div>
+
+      <!-- Camera / Upload / Export Controls -->
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <button onclick="openLiveCameraModal('studio')" class="py-2.5 rounded-xl text-xs surface-card-alt font-bold flex items-center justify-center gap-1.5 border border-[#C8F526]/40">
+          <span>📷</span><span>Foto Kamera HP</span>
+        </button>
+        <label class="py-2.5 rounded-xl text-xs surface-card-alt font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>🖼️</span><span>Pilih Foto Galeri</span>
+          <input type="file" accept="image/*" onchange="handleGalleryUpload(event)" class="hidden" />
+        </label>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="shareToInstagramStory()" class="py-3 rounded-xl text-xs lime-btn flex items-center justify-center gap-1.5">
+          <span>📲</span><span>Share ke IG Story</span>
+        </button>
+        <button onclick="downloadStudioImage()" class="py-3 rounded-xl text-xs surface-card-alt font-extrabold flex items-center justify-center gap-1.5 border border-white/15">
+          <span>⬇️</span><span>Unduh Resolusi Penuh</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- =========================================================
+     FLOATING BOTTOM NAVIGATION DOCK (MOCKUP 1, 2, 3 REPLICA)
+     ========================================================= -->
+<nav class="bottom-dock flex items-center justify-between">
+  <button id="nav-home" onclick="switchTab('home')" class="nav-item active">
+    <span>🏠</span><span class="nav-label">Home</span>
+  </button>
+  <button id="nav-workout" onclick="switchTab('workout')" class="nav-item">
+    <span>🏋️</span><span class="nav-label hidden">Workout</span>
+  </button>
+  <button id="nav-nutrition" onclick="switchTab('nutrition')" class="nav-item">
+    <span>📅</span><span class="nav-label hidden">Diet & Cal</span>
+  </button>
+  <button id="nav-analytics" onclick="switchTab('analytics')" class="nav-item">
+    <span>📊</span><span class="nav-label hidden">Analytics</span>
+  </button>
+  <button id="nav-studio" onclick="switchTab('studio')" class="nav-item">
+    <span>📸</span><span class="nav-label hidden">IG Story</span>
+  </button>
+</nav>
+
+<!-- =========================================================
+     MODAL 1: IN-APP WEBRTC LIVE CAMERA (SELFIE MIRROR & BACK)
+     ========================================================= -->
+<div id="cameraModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex-col items-center justify-center p-4">
+  <div class="w-full max-w-sm surface-card p-4 space-y-3">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-sm font-extrabold">📷 In-App Camera (9:16 IG Story)</h3>
+        <p class="text-[11px] opacity-65">Ambil foto langsung dari kamera HP kamu</p>
+      </div>
+      <button onclick="closeLiveCameraModal()" class="px-2.5 py-1 rounded-lg surface-card-alt text-xs font-bold">✕</button>
+    </div>
+
+    <div class="relative w-full aspect-[9/16] max-h-[58vh] bg-black rounded-2xl overflow-hidden border border-white/15 mx-auto">
+      <video id="cameraVideoEl" autoplay playsinline muted class="w-full h-full object-cover"></video>
+      <!-- 9:16 Safe Zone Guide Overlay -->
+      <div class="absolute inset-4 border border-dashed border-[#C8F526]/45 rounded-xl pointer-events-none flex flex-col justify-between p-3">
+        <span class="text-[10px] font-bold text-[#C8F526] bg-black/60 px-2 py-0.5 rounded self-start">FITSYNC 9:16 GUIDE</span>
+        <span class="text-[10px] font-bold text-white/80 bg-black/60 px-2 py-0.5 rounded self-center">Area Presisi Metrik Bawah</span>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between gap-2">
+      <button onclick="switchCameraFacing()" class="px-3 py-2.5 rounded-xl text-xs surface-card-alt font-bold">🔄 Putar Kamera</button>
+      <button onclick="captureLivePhoto()" class="flex-1 py-2.5 rounded-xl text-xs lime-btn">📸 Jepret Foto</button>
+      <button onclick="toggleCameraMirror()" class="px-3 py-2.5 rounded-xl text-xs surface-card-alt font-bold">🪞 Mirror</button>
+    </div>
+
+    <label class="block text-center text-[11px] opacity-75 underline cursor-pointer pt-1">
+      Atau gunakan Kamera Native HP / File Picker
+      <input type="file" accept="image/*" capture="environment" onchange="handleGalleryUpload(event); closeLiveCameraModal();" class="hidden" />
+    </label>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: FITSYNC SAFELINK (STRAVA BEACON BIO-AWARE)
+     ========================================================= -->
+<div id="beaconModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+  <div class="w-full max-w-sm surface-card p-5 space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-amber-400 beacon-dot"></span>
+        <h3 class="text-sm font-extrabold">🛰️ FitSync SafeLink (Bio-Beacon)</h3>
+      </div>
+      <button onclick="closeBeaconModal()" class="px-2.5 py-1 rounded-lg surface-card-alt text-xs font-bold">✕</button>
+    </div>
+    <p class="text-xs opacity-80 leading-relaxed">
+      Bagikan lokasi GPS <em>real-time</em>, detak jantung, sisa baterai, dan status puasa aktif ke kontak darurat saat berlari atau bersepeda.
+    </p>
+    <div class="surface-card-alt p-3 text-xs space-y-1.5">
+      <div class="flex justify-between"><span>📍 Koordinat GPS:</span><strong class="text-[#C8F526]">-0.3051° S, 100.3692° E</strong></div>
+      <div class="flex justify-between"><span>💚 Detak Jantung:</span><strong>142 bpm (Zona Aerobik)</strong></div>
+      <div class="flex justify-between"><span>⏱️ Status Metabolik:</span><strong class="text-amber-400" id="beaconFastingStatus">IF 16:8 (Fasted Cardio)</strong></div>
+      <div class="flex justify-between"><span>🔋 Baterai Perangkat:</span><strong>84% (Online)</strong></div>
+    </div>
+    <button onclick="shareBeaconWhatsApp()" class="w-full py-2.5 rounded-xl text-xs lime-btn">📲 Kirim Link Live Beacon ke WhatsApp</button>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="toastBox" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-[#C8F526] text-[#0E110F] text-xs font-extrabold shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300">
+  Tersimpan!
+</div>
+
+<script>
+  /* =========================================================
+     CENTRAL APPLICATION STATE (5 PILLARS + STRAVA ATM)
+     ========================================================= */
+  const appState = {
+    theme: 'dark',
+    activeTab: 'home',
+    activeWorkoutSub: 'gym',
+    bleConnected: true,
+    heartRate: 142,
+    steps: 5635,
+    activeCalories: 620,
+    tdee: 2150,
+    bmr: 1698,
+    targetProtein: 150,
+    consumedCalories: 943,
+    consumedProtein: 138,
+    fastingProtocol: '16:8',
+    fastingSecondsLeft: 14 * 3600 + 22 * 60 + 9,
+
+    weeklySchedule: [
+      { day: 'Sen', label: 'Push', done: true, num: '✓' },
+      { day: 'Sel', label: 'Pull', done: true, num: '✓' },
+      { day: 'Rab', label: 'Run 5K', done: false, num: '16', active: true },
+      { day: 'Kam', label: 'Legs', done: false, num: '17' },
+      { day: 'Jum', label: 'Upper', done: false, num: '18' },
+      { day: 'Sab', label: 'Cycle', done: false, num: '19' },
+      { day: 'Min', label: 'Rest', done: false, num: '20' }
+    ],
+
+    currentSplit: 'Push',
+    gymExercisesBySplit: {
+      Push: ['Incline Dumbbell Press', 'Barbell Bench Press', 'Seated Shoulder Press', 'Cable Lateral Raises', 'Tricep Rope Pushdown'],
+      Pull: ['Weighted Pull-Ups', 'Lat Pulldown Wide', 'Barbell Bent-Over Row', 'Face Pulls', 'Incline Dumbbell Curl'],
+      Legs: ['Barbell Back Squat', 'Romanian Deadlift (RDL)', 'Leg Press 45°', 'Lying Leg Curl', 'Standing Calf Raise'],
+      Upper: ['Incline Bench Press', 'Pendlay Row', 'Overhead Press', 'Cable Fly', 'EZ-Bar Barbell Curl'],
+      Lower: ['Hack Squat', 'Bulgarian Split Squat', 'Hip Thrust', 'Seated Hamstring Curl', 'Seated Calf Raise'],
+      FullBody: ['Deadlift', 'Bench Press', 'Pull-Ups', 'Dumbbell Shoulder Press', 'Front Squat']
+    },
+
+    gymSets: [
+      { id: 1, name: 'Incline Dumbbell Press', weight: 32, reps: 10, sets: 4, done: true, isPr: true },
+      { id: 2, name: 'Barbell Bench Press', weight: 80, reps: 8, sets: 4, done: true, isPr: true },
+      { id: 3, name: 'Cable Lateral Raises', weight: 14, reps: 15, sets: 4, done: true, isPr: false },
+      { id: 4, name: 'Tricep Rope Pushdown', weight: 28, reps: 12, sets: 3, done: true, isPr: false }
+    ],
+
+    runData: {
+      title: 'Morning 5K Tempo Run',
+      distanceKm: 5.24,
+      movingSeconds: 1646, // 27:26
+      cadence: 176,
+      elevationM: 118,
+      gradePct: 4.2,
+      runningLive: false,
+      splits: [
+        { km: 1, pace: "5'18\"", elev: '+18m', hr: 148 },
+        { km: 2, pace: "5'12\"", elev: '+24m', hr: 154 },
+        { km: 3, pace: "5'08\"", elev: '+31m', hr: 161 },
+        { km: 4, pace: "5'16\"", elev: '+28m', hr: 164 },
+        { km: 5, pace: "5'04\"", elev: '+17m', hr: 169 }
+      ]
+    },
+
+    multiSports: [
+      { id: 'cycling', icon: '🚴', name: 'Sepedaan Road', met: 8.5, unit: '26.4 km/h' },
+      { id: 'padel', icon: '🎾', name: 'Padel / Tenis', met: 7.0, unit: '3 Set Match' },
+      { id: 'hiking', icon: '🥾', name: 'Hiking Trail', met: 6.5, unit: '+420m Elev' },
+      { id: 'swimming', icon: '🏊', name: 'Renang Lap', met: 8.0, unit: '1,500m Pace' },
+      { id: 'basketball', icon: '🏀', name: 'Basket / Futsal', met: 8.0, unit: 'Full Court' },
+      { id: 'walking', icon: '🚶', name: 'Jalan Cepat', met: 4.2, unit: '6,800 Steps' }
+    ],
+    selectedMultiSportIndex: 0,
+    multiDurationMin: 60,
+
+    segments: [
+      { name: 'Tanjakan Sianok Sprint (Road)', dist: '1.8 km • Grade 6.4%', kom: '4:12 (KOM)', userBest: '4:19 (Rank #2)', legendCount: 14, isLegend: true, type: 'road' },
+      { name: 'Loop Lapangan Kantin 5K Fast', dist: '5.0 km • Flat 0.8%', kom: '19:45 (KOM)', userBest: '21:10 (Top 5%)', legendCount: 22, isLegend: true, type: 'road' },
+      { name: 'Gym Iron Legend: Bench Press Ratio', dist: 'Relative Strength (1RM / BW)', kom: '1.48x BW', userBest: '1.41x BW (101.3 kg)', legendCount: 18, isLegend: true, type: 'gym' }
+    ],
+
+    challenges: [
+      { id: 'c1', title: '100 KM Oktober Run & Ride Club', current: 78.4, target: 100, unit: 'KM', badge: '🏅 100K Endurance' },
+      { id: 'c2', title: '50 Ton Gym Volume Master', current: 42.6, target: 50, unit: 'Ton', badge: '🏋️ Iron 50T' },
+      { id: 'c3', title: '21 Days IF 16:8 & Protein Streak', current: 18, target: 21, unit: 'Hari', badge: '🔥 Clean Macro' }
+    ],
+
+    socialFeed: [
+      { id: 101, author: 'Rizky Pratama', tag: 'Strava Run • 10.2 KM', metric: "Pace 5'09\"/km • +145m Elev", kudos: 24, fistbumps: 9, liked: false, bumped: false, comments: ['Kenceng banget pace KM terakhir! 🔥'] },
+      { id: 102, author: 'Nadia Putri', tag: 'Push Day + IF 16:8', metric: 'Total Volume 4.820 KG • 2 New PR', kudos: 31, fistbumps: 18, liked: true, bumped: false, comments: ['PR Incline mantap kak!'] }
+    ],
+
+    presetMeals: [
+      { title: 'Dada Ayam Bakar, Nasi Putih 150g & Tempe', cal: 540, prot: 46, carb: 52, fat: 14 },
+      { title: 'Sirloin Steak 200g, Kentang Panggang & Telur', cal: 610, prot: 54, carb: 38, fat: 24 },
+      { title: 'Ikan Bakar Padang, Lalapan & Tahu Kukus', cal: 480, prot: 42, carb: 44, fat: 12 }
+    ],
+    activeMeal: { baseCal: 540, baseProt: 46, baseCarb: 52, baseFat: 14, scale: 1.0, title: 'Dada Ayam Bakar, Nasi Putih 150g & Tempe' },
+
+    bodyHistory: {
+      labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'Now'],
+      weight: [74.5, 73.9, 73.2, 72.8, 72.4, 72.0],
+      waist: [81.7, 81.0, 80.2, 79.5, 79.0, 78.5],
+      thigh: [54.5, 54.8, 55.2, 55.5, 55.8, 56.0],
+      arm: [35.2, 35.5, 35.8, 36.0, 36.2, 36.5],
+      chest: [99.0, 99.5, 100.0, 100.4, 100.8, 101.0]
+    },
+
+    weeklyConsistency: [
+      { day: 'MON', pct: 100 },
+      { day: 'TUE', pct: 85 },
+      { day: 'WED', pct: 100 },
+      { day: 'THU', pct: 92 },
+      { day: 'FRI', pct: 100 },
+      { day: 'SAT', pct: 78 },
+      { day: 'SUN', pct: 95 }
+    ],
+
+    studio: {
+      ratio: '9:16',
+      template: 'gym',
+      hudOffsetY: 25,
+      bgImage: null,
+      cameraStream: null,
+      facingMode: 'environment',
+      mirror: false
+    }
+  };
+
+  /* =========================================================
+     HELPER UTILITIES & ROUNDED RECT FALLBACK
+     ========================================================= */
+  function showToast(msg) {
+    const t = document.getElementById('toastBox');
+    if (!t) return;
+    t.textContent = msg;
+    t.style.opacity = '1';
+    setTimeout(() => { t.style.opacity = '0'; }, 2400);
+  }
+
+  function drawRoundRectPath(ctx, x, y, w, h, r) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
+
+  function formatNumberID(num) {
+    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function formatDurationMMSS(totalSec) {
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  /* =========================================================
+     NAVIGATION & THEME ENGINE
+     ========================================================= */
+  window.toggleTheme = function() {
+    const html = document.documentElement;
+    const btn = document.getElementById('themeBtn');
+    if (appState.theme === 'dark') {
+      appState.theme = 'light';
+      html.classList.remove('theme-dark');
+      html.classList.add('theme-light');
+      btn.textContent = '🌙 Obsidian';
+    } else {
+      appState.theme = 'dark';
+      html.classList.remove('theme-light');
+      html.classList.add('theme-dark');
+      btn.textContent = '☀️ Sage';
+    }
+    renderRunRouteCanvas();
+    renderBodyCurveChart();
+    renderFitnessFreshnessChart();
+    renderStudioCanvas();
+  };
+
+  window.switchTab = function(tabName) {
+    appState.activeTab = tabName;
+    const tabs = ['home', 'workout', 'nutrition', 'analytics', 'studio'];
+    tabs.forEach(t => {
+      const sec = document.getElementById(`tab-${t}`);
+      const nav = document.getElementById(`nav-${t}`);
+      if (sec) sec.classList.toggle('hidden', t !== tabName);
+      if (nav) {
+        const isActive = t === tabName;
+        nav.classList.toggle('active', isActive);
+        const lbl = nav.querySelector('.nav-label');
+        if (lbl) lbl.classList.toggle('hidden', !isActive);
+      }
+    });
+
+    if (tabName === 'workout') renderRunRouteCanvas();
+    if (tabName === 'analytics') {
+      renderBodyCurveChart();
+      renderFitnessFreshnessChart();
+    }
+    if (tabName === 'studio') renderStudioCanvas();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.switchWorkoutSub = function(sub) {
+    appState.activeWorkoutSub = sub;
+    const subs = ['gym', 'run', 'multi', 'kom'];
+    subs.forEach(s => {
+      const panel = document.getElementById(`panel-workout-${s}`);
+      const btn = document.getElementById(`wsub-${s}`);
+      if (panel) panel.classList.toggle('hidden', s !== sub);
+      if (btn) {
+        if (s === sub) {
+          btn.className = 'py-2 rounded-xl text-xs font-bold lime-btn';
+        } else {
+          btn.className = 'py-2 rounded-xl text-xs font-bold opacity-75';
+        }
+      }
+    });
+    if (sub === 'run') renderRunRouteCanvas();
+  };
+
+  window.openCategoryQuick = function(cat) {
+    switchTab('workout');
+    if (cat === 'gym') switchWorkoutSub('gym');
+    else if (cat === 'run') switchWorkoutSub('run');
+    else switchWorkoutSub('multi');
+  };
+
+  /* =========================================================
+     HOME DASHBOARD, IF DIAL GAUGE & MUSCLE ANATOMY
+     ========================================================= */
+  function renderHomeDashboard() {
+    // 6 Progress Circles (Mockup 1 & 2)
+    const circleWrap = document.getElementById('homeProgressCircles');
+    if (circleWrap) {
+      circleWrap.innerHTML = appState.weeklySchedule.slice(0, 6).map((item, idx) => {
+        const bgClass = item.done
+          ? 'bg-[#DFF58E] text-[#132018] font-extrabold shadow'
+          : (item.active ? 'bg-white text-[#132018] font-extrabold ring-2 ring-[#C8F526]' : 'bg-white/85 text-[#132018] font-bold');
+        return `
+          <button onclick="toggleScheduleDayDone(${idx})" class="flex flex-col items-center gap-1">
+            <div class="w-11 h-11 rounded-full ${bgClass} flex items-center justify-center text-sm transition-transform active:scale-90">
+              ${item.done ? '✓' : item.num}
+            </div>
+            <span class="text-[10px] font-semibold opacity-90">${item.day}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Weekly Planner Bar under Gauge
+    const plannerBar = document.getElementById('weeklyPlannerBar');
+    if (plannerBar) {
+      plannerBar.innerHTML = appState.weeklySchedule.map((d, i) => `
+        <button onclick="selectScheduleDay(${i})" class="p-1.5 rounded-xl text-center transition ${d.active ? 'lime-btn' : 'surface-card-alt'}">
+          <div class="text-[10px] opacity-75">${d.day}</div>
+          <div class="text-[10px] font-extrabold truncate">${d.label}</div>
+        </button>
+      `).join('');
+    }
+
+    // Gauge ticks
+    const ticksG = document.getElementById('gaugeTicks');
+    if (ticksG && !ticksG.hasChildNodes()) {
+      let ticksHtml = '';
+      for (let i = 0; i <= 24; i++) {
+        const angle = Math.PI + (i / 24) * Math.PI;
+        const x1 = 120 + Math.cos(angle) * 76;
+        const y1 = 110 + Math.sin(angle) * 76;
+        const x2 = 120 + Math.cos(angle) * 84;
+        const y2 = 110 + Math.sin(angle) * 84;
+        ticksHtml += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke-width="1.5" />`;
+      }
+      ticksG.innerHTML = ticksHtml;
+    }
+
+    document.getElementById('homeTdeeVal').textContent = formatNumberID(appState.tdee);
+    document.getElementById('homeProteinVal').textContent = `${appState.consumedProtein} / ${appState.targetProtein}g`;
+    document.getElementById('pillCalories').textContent = formatNumberID(appState.consumedCalories);
+    document.getElementById('pillSteps').textContent = formatNumberID(appState.steps);
+    document.getElementById('pillHeart').textContent = `${appState.heartRate} bpm`;
+  }
+
+  window.toggleScheduleDayDone = function(idx) {
+    appState.weeklySchedule[idx].done = !appState.weeklySchedule[idx].done;
+    renderHomeDashboard();
+    showToast(`Status latihan hari ${appState.weeklySchedule[idx].day} diperbarui!`);
+  };
+
+  window.selectScheduleDay = function(idx) {
+    appState.weeklySchedule.forEach((d, i) => d.active = (i === idx));
+    const chosen = appState.weeklySchedule[idx].label;
+    if (['Push', 'Pull', 'Legs'].includes(chosen)) {
+      QuickSelectHomeSplit(chosen);
+    }
+    renderHomeDashboard();
+  };
+
+  window.QuickSelectHomeSplit = function(split) {
+    appState.currentSplit = split;
+    const titleEl = document.getElementById('homeSplitTitle');
+    const metaEl = document.getElementById('homeSplitMeta');
+
+    const mapDesc = {
+      Push: { title: 'Push Day (Hypertrophy)', meta: '620 kcal • Chest, Shoulders, Triceps', muscles: ['muscle-shoulders-l', 'muscle-shoulders-r', 'muscle-chest-l', 'muscle-chest-r', 'muscle-arms-l', 'muscle-arms-r'] },
+      Pull: { title: 'Pull Day (V-Taper Back)', meta: '590 kcal • Lats, Traps, Rear Delt, Biceps', muscles: ['muscle-shoulders-l', 'muscle-shoulders-r', 'muscle-arms-l', 'muscle-arms-r', 'muscle-abs'] },
+      Legs: { title: 'Leg Day (Quad & Glute)', meta: '710 kcal • Quads, Hamstrings, Calves', muscles: ['muscle-legs-l', 'muscle-legs-r', 'muscle-calves-l', 'muscle-calves-r', 'muscle-abs'] }
+    };
+
+    const cfg = mapDesc[split] || mapDesc.Push;
+    if (titleEl) titleEl.textContent = cfg.title;
+    if (metaEl) metaEl.textContent = cfg.meta;
+
+    document.querySelectorAll('.muscle-part').forEach(el => el.classList.remove('muscle-active'));
+    cfg.muscles.forEach(id => {
+      const m = document.getElementById(id);
+      if (m) m.classList.add('muscle-active');
+    });
+
+    renderGymLogger();
+  };
+
+  window.changeFastingProtocol = function(proto) {
+    appState.fastingProtocol = proto;
+    const hoursMap = { '16:8': 16, '18:6': 18, '20:4': 20, '23:1': 23 };
+    const h = hoursMap[proto] || 16;
+    appState.fastingSecondsLeft = (h - 2) * 3600 + 15 * 60;
+    const beaconFast = document.getElementById('beaconFastingStatus');
+    if (beaconFast) beaconFast.textContent = `Protokol ${proto} Aktif`;
+    showToast(`Protokol diet diubah ke ${proto}`);
+  };
+
+  window.refreshAiIntelligence = function() {
+    const messages = [
+      `Volume ${appState.currentSplit} Day mencapai ${formatNumberID(getGymTotalVolume())} KG dengan 2 Rekor PR baru! Protein harian ${Math.round((appState.consumedProtein/appState.targetProtein)*100)}% terpenuhi. Pertahankan defisit kalori untuk memangkas lingkar pinggang.`,
+      `Analisis Strava Hybrid: Cadence lari kamu stabil di ${appState.runData.cadence} spm dengan estimasi waktu 5K ${ computeRiegelTime(5) }. Asupan protein (${appState.consumedProtein}g) menjaga pemulihan otot tetap hijau (Readiness 91%).`,
+      `Body Recomposition Insight: Berat badan turun ke ${appState.bodyHistory.weight.slice(-1)[0]} kg sementara beban angkatan relatif naik ke 1.41x BW. Jadwal puasa ${appState.fastingProtocol} berjalan optimal.`
+    ];
+    const el = document.getElementById('aiIntelligenceText');
+    if (el) el.innerHTML = messages[Math.floor(Math.random() * messages.length)];
+    showToast('AI Athlete Intelligence diperbarui!');
+  };
+
+  /* =========================================================
+     GYM LOGGER & 1RM EPLEY PREDICTOR
+     ========================================================= */
+  function getGymTotalVolume() {
+    return appState.gymSets.reduce((acc, s) => s.done ? acc + (s.weight * s.reps * s.sets) : acc, 0);
+  }
+
+  function getGymCompletedSets() {
+    return appState.gymSets.reduce((acc, s) => s.done ? acc + s.sets : acc, 0);
+  }
+
+  function getGymPrCount() {
+    return appState.gymSets.filter(s => s.done && s.isPr).length;
+  }
+
+  function renderGymLogger() {
+    const splitContainer = document.getElementById('gymSplitButtons');
+    const splits = Object.keys(appState.gymExercisesBySplit);
+    if (splitContainer) {
+      splitContainer.innerHTML = splits.map(sp => `
+        <button onclick="selectGymSplit('${sp}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap ${appState.currentSplit === sp ? 'lime-btn' : 'surface-card-alt'}">
+          ${sp} Day
+        </button>
+      `).join('');
+    }
+
+    const picker = document.getElementById('gymExercisePicker');
+    if (picker) {
+      const list = appState.gymExercisesBySplit[appState.currentSplit] || [];
+      picker.innerHTML = list.map(ex => `<option value="${ex}">${ex}</option>`).join('');
+    }
+
+    const setsList = document.getElementById('gymSetsList');
+    if (setsList) {
+      setsList.innerHTML = appState.gymSets.map((item, idx) => `
+        <div class="surface-card-alt p-3 flex items-center justify-between gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-extrabold truncate">${item.name}</span>
+              ${item.isPr ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">PR 🔥</span>' : ''}
+            </div>
+            <div class="flex items-center gap-2 mt-1.5 text-xs">
+              <label class="text-[10px] opacity-65">Set:</label>
+              <input type="number" value="${item.sets}" onchange="updateGymSetField(${idx}, 'sets', this.value)" class="w-11 bg-black/25 px-1.5 py-1 rounded text-center font-bold outline-none" />
+              <label class="text-[10px] opacity-65">Kg:</label>
+              <input type="number" value="${item.weight}" onchange="updateGymSetField(${idx}, 'weight', this.value)" class="w-14 bg-black/25 px-1.5 py-1 rounded text-center font-bold text-[#C8F526] outline-none" />
+              <label class="text-[10px] opacity-65">Reps:</label>
+              <input type="number" value="${item.reps}" onchange="updateGymSetField(${idx}, 'reps', this.value)" class="w-12 bg-black/25 px-1.5 py-1 rounded text-center font-bold outline-none" />
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="toggleGymSetDone(${idx})" class="w-9 h-9 rounded-xl font-bold text-xs ${item.done ? 'lime-btn' : 'surface-card border border-white/15'}">
+              ✓
+            </button>
+            <button onclick="removeGymSetRow(${idx})" class="w-8 h-9 rounded-xl surface-card text-xs opacity-60 hover:opacity-100">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const totalVol = getGymTotalVolume();
+    const totalSets = getGymCompletedSets();
+    const prCount = getGymPrCount();
+
+    document.getElementById('gymTotalVolume').textContent = `${formatNumberID(totalVol)} KG`;
+    document.getElementById('gymCompletedSets').textContent = `${totalSets} SETS`;
+    document.getElementById('gymPrCount').textContent = `${prCount} NEW PR 🔥`;
+    document.getElementById('homeFloatExercises').textContent = `${totalSets} Sets • ${prCount} PR`;
+
+    // Render 1RM Epley Predictor
+    const rmBox = document.getElementById('gym1RmContainer');
+    const currentBW = appState.bodyHistory.weight.slice(-1)[0] || 72;
+    if (rmBox) {
+      rmBox.innerHTML = appState.gymSets.slice(0, 4).map(s => {
+        const est1Rm = s.weight * (1 + s.reps / 30);
+        const ratio = (est1Rm / currentBW).toFixed(2);
+        return `
+          <div class="surface-card-alt p-2.5">
+            <div class="text-[10px] opacity-70 truncate">${s.name}</div>
+            <div class="font-display font-bold text-sm text-[#C8F526] mt-0.5">1RM: ${est1Rm.toFixed(1)} kg</div>
+            <div class="text-[10px] opacity-75">Rasio Kekuatan: <strong>${ratio}x BW</strong></div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  window.selectGymSplit = function(sp) {
+    QuickSelectHomeSplit(sp);
+  };
+
+  window.updateGymSetField = function(idx, field, val) {
+    const num = Math.max(1, parseFloat(val) || 1);
+    appState.gymSets[idx][field] = num;
+    if (field === 'weight' && num >= 30) appState.gymSets[idx].isPr = true;
+    renderGymLogger();
+    renderStudioCanvas();
+  };
+
+  window.toggleGymSetDone = function(idx) {
+    appState.gymSets[idx].done = !appState.gymSets[idx].done;
+    renderGymLogger();
+    renderStudioCanvas();
+  };
+
+  window.removeGymSetRow = function(idx) {
+    if (appState.gymSets.length <= 1) return;
+    appState.gymSets.splice(idx, 1);
+    renderGymLogger();
+  };
+
+  window.addGymSetRow = function() {
+    const picker = document.getElementById('gymExercisePicker');
+    const exName = picker ? picker.value : 'Incline Dumbbell Press';
+    appState.gymSets.push({
+      id: Date.now(),
+      name: exName,
+      weight: 30,
+      reps: 10,
+      sets: 3,
+      done: true,
+      isPr: true
+    });
+    renderGymLogger();
+    showToast(`${exName} ditambahkan!`);
+  };
+
+  /* =========================================================
+     STRAVA RUN GPS, 3D GRADE MAP & RACE PREDICTOR (RIEGEL)
+     ========================================================= */
+  function computePaceString(distKm, sec) {
+    if (!distKm || distKm <= 0) return "0'00\"";
+    const paceSecPerKm = sec / distKm;
+    const m = Math.floor(paceSecPerKm / 60);
+    const s = Math.round(paceSecPerKm % 60);
+    return `${m}'${String(s).padStart(2, '0')}"`;
+  }
+
+  function computeRiegelTime(targetKm) {
+    const d1 = appState.runData.distanceKm;
+    const t1 = appState.runData.movingSeconds;
+    const t2 = t1 * Math.pow(targetKm / d1, 1.06);
+    const h = Math.floor(t2 / 3600);
+    const m = Math.floor((t2 % 3600) / 60);
+    const s = Math.round(t2 % 60);
+    if (h > 0) return `${h}j ${m}m ${s}d`;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function renderRunSection() {
+    const d = appState.runData;
+    document.getElementById('runDistVal').textContent = d.distanceKm.toFixed(2);
+    document.getElementById('runPaceVal').textContent = computePaceString(d.distanceKm, d.movingSeconds);
+    document.getElementById('runTimeVal').textContent = formatDurationMMSS(d.movingSeconds);
+    document.getElementById('runCadenceVal').textContent = d.cadence;
+
+    // Splits table
+    const splitsBox = document.getElementById('runSplitsTable');
+    if (splitsBox) {
+      splitsBox.innerHTML = d.splits.map(sp => `
+        <div class="surface-card-alt px-3 py-2 flex items-center justify-between">
+          <span class="font-bold">KM ${sp.km}</span>
+          <span class="font-display font-bold text-[#C8F526]">${sp.pace} /km</span>
+          <span class="opacity-75">Elev ${sp.elev}</span>
+          <span class="text-emerald-400 font-semibold">♥ ${sp.hr} bpm</span>
+        </div>
+      `).join('');
+    }
+
+    // Race Predictor (5K, 10K, Half Marathon, Full Marathon)
+    const predGrid = document.getElementById('racePredictorGrid');
+    if (predGrid) {
+      const races = [
+        { label: '5K Road Race', km: 5 },
+        { label: '10K Race', km: 10 },
+        { label: 'Half Marathon (21.1K)', km: 21.0975 },
+        { label: 'Full Marathon (42.2K)', km: 42.195 }
+      ];
+      predGrid.innerHTML = races.map(r => `
+        <div class="surface-card-alt p-3">
+          <div class="text-[10px] opacity-65">${r.label}</div>
+          <div class="font-display font-bold text-base text-[#C8F526] mt-0.5">${computeRiegelTime(r.km)}</div>
+          <div class="text-[10px] opacity-75">Est. Pace: ${computePaceString(r.km, appState.runData.movingSeconds * Math.pow(r.km / appState.runData.distanceKm, 1.06))}/km</div>
+        </div>
+      `).join('');
+    }
+
+    renderRunRouteCanvas();
+  }
+
+  function renderRunRouteCanvas() {
+    const canvas = document.getElementById('runRouteCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Dark topo grid background
+    ctx.fillStyle = '#0B110E';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = 'rgba(200, 245, 38, 0.07)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < w; x += 28) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = 0; y < h; y += 28) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    // 3D Elevation Profile Silhouette at Bottom
+    ctx.fillStyle = 'rgba(67, 130, 87, 0.28)';
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, h - 35);
+    ctx.quadraticCurveTo(w * 0.25, h - 68, w * 0.5, h - 42);
+    ctx.quadraticCurveTo(w * 0.75, h - 85, w, h - 48);
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+
+    // GPS Route Loop with KM Markers
+    const pts = [
+      { x: 58, y: 155, label: 'START' },
+      { x: 115, y: 74, label: '1K' },
+      { x: 215, y: 48, label: '2K' },
+      { x: 325, y: 72, label: '3K' },
+      { x: 378, y: 145, label: '4K' },
+      { x: 235, y: 172, label: '5K' },
+      { x: 78, y: 162, label: 'FIN' }
+    ];
+
+    // Glow route stroke
+    ctx.save();
+    ctx.strokeStyle = '#C8F526';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(200, 245, 38, 0.75)';
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    pts.forEach((p, idx) => {
+      if (idx === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+    ctx.restore();
+
+    // KM Marker Pins
+    pts.forEach((p, idx) => {
+      ctx.fillStyle = idx === 0 ? '#FFFFFF' : '#C8F526';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0E110F';
+      ctx.font = 'bold 9px Plus Jakarta Sans';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(p.label, p.x - 10, p.y - 10);
+    });
+  }
+
+  window.changeRunPreset = function(preset) {
+    const map = {
+      morning: { title: 'Morning 5K Tempo Run', distanceKm: 5.24, movingSeconds: 1646, cadence: 176 },
+      tempo: { title: 'Tempo Threshold 8K', distanceKm: 8.10, movingSeconds: 2490, cadence: 180 },
+      interval: { title: 'Track Interval 400m x 10', distanceKm: 4.50, movingSeconds: 1290, cadence: 186 },
+      long: { title: 'Sunday Long Run 15K', distanceKm: 15.20, movingSeconds: 5120, cadence: 172 }
+    };
+    const cfg = map[preset] || map.morning;
+    Object.assign(appState.runData, cfg);
+    renderRunSection();
+    renderStudioCanvas();
+    showToast(`Preset lari diubah ke ${cfg.title}`);
+  };
+
+  let runIntervalId = null;
+  window.toggleRunLiveTimer = function() {
+    const btn = document.getElementById('btnToggleRunTimer');
+    appState.runData.runningLive = !appState.runData.runningLive;
+    if (appState.runData.runningLive) {
+      btn.textContent = '⏸ Jeda Live GPS Run';
+      runIntervalId = setInterval(() => {
+        appState.runData.movingSeconds += 1;
+        appState.runData.distanceKm = +(appState.runData.distanceKm + 0.004).toFixed(2);
+        renderRunSection();
+      }, 1000);
+    } else {
+      btn.textContent = '▶ Lanjutkan Live GPS Run';
+      clearInterval(runIntervalId);
+    }
+  };
+
+  /* =========================================================
+     MULTI-SPORT, BURN TARGET ROUTER & KOM LEADERBOARD
+     ========================================================= */
+  function renderMultiSportAndKom() {
+    const wrap = document.getElementById('multiSportButtons');
+    if (wrap) {
+      wrap.innerHTML = appState.multiSports.map((sp, i) => `
+        <button onclick="selectMultiSport(${i})" class="p-2.5 rounded-xl text-left border transition ${appState.selectedMultiSportIndex === i ? 'lime-btn border-transparent' : 'surface-card-alt border-white/5'}">
+          <div class="text-lg">${sp.icon}</div>
+          <div class="text-xs font-extrabold mt-1">${sp.name}</div>
+          <div class="text-[10px] opacity-75">METs ${sp.met}</div>
+        </button>
+      `).join('');
+    }
+    updateMultiSportDuration(appState.multiDurationMin);
+    calculateBurnRoute();
+
+    // KOM & Local Legend List
+    const komList = document.getElementById('segmentsLeaderboardList');
+    if (komList) {
+      komList.innerHTML = appState.segments.map((seg, i) => `
+        <div class="surface-card-alt p-3.5 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold">${seg.name}</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#C8F526]/20 text-[#C8F526] font-bold">👑 Local Legend (${seg.legendCount}x / 90d)</span>
+          </div>
+          <div class="text-[11px] opacity-70">${seg.dist}</div>
+          <div class="flex items-center justify-between text-xs pt-1 border-t border-white/10">
+            <span>Rekor KOM: <strong>${seg.kom}</strong></span>
+            <span class="text-[#C8F526] font-bold">Waktu Kamu: ${seg.userBest}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  window.selectMultiSport = function(idx) {
+    appState.selectedMultiSportIndex = idx;
+    renderMultiSportAndKom();
+  };
+
+  window.updateMultiSportDuration = function(min) {
+    appState.multiDurationMin = parseInt(min, 10) || 60;
+    const sp = appState.multiSports[appState.selectedMultiSportIndex];
+    const bw = appState.bodyHistory.weight.slice(-1)[0] || 72;
+    const burned = Math.round(sp.met * bw * (appState.multiDurationMin / 60));
+
+    document.getElementById('multiDurationVal').textContent = `${appState.multiDurationMin} Min`;
+    document.getElementById('multiMetricVal').textContent = sp.unit;
+    document.getElementById('multiCaloriesVal').textContent = `${burned} kcal`;
+  };
+
+  window.calculateBurnRoute = function() {
+    const inp = document.getElementById('targetBurnInput');
+    const targetKcal = Math.max(100, parseInt(inp ? inp.value : 450, 10) || 450);
+    const bw = appState.bodyHistory.weight.slice(-1)[0] || 72;
+
+    const runKm = (targetKcal / (bw * 1.036)).toFixed(1);
+    const cycleKm = (targetKcal / (bw * 0.42)).toFixed(1);
+
+    const box = document.getElementById('burnRouteResult');
+    if (box) {
+      box.innerHTML = `
+        <div class="surface-card-alt p-3">
+          <div class="text-[10px] opacity-65">Rekomendasi Rute Lari</div>
+          <div class="font-display font-bold text-base text-[#C8F526] mt-0.5">🏃 ${runKm} KM</div>
+          <div class="text-[10px] opacity-75">Est. ${Math.round(runKm * 5.3)} menit</div>
+        </div>
+        <div class="surface-card-alt p-3">
+          <div class="text-[10px] opacity-65">Rekomendasi Rute Sepeda</div>
+          <div class="font-display font-bold text-base text-emerald-400 mt-0.5">🚴 ${cycleKm} KM</div>
+          <div class="text-[10px] opacity-75">Est. ${Math.round((cycleKm / 25) * 60)} menit</div>
+        </div>
+      `;
+    }
+  };
+
+  /* =========================================================
+     CHALLENGES & SOCIAL FEED (KUDOS & PR FISTBUMP)
+     ========================================================= */
+  function renderChallengesAndSocial() {
+    const chBox = document.getElementById('challengesList');
+    if (chBox) {
+      chBox.innerHTML = appState.challenges.map(c => {
+        const pct = Math.min(100, Math.round((c.current / c.target) * 100));
+        return `
+          <div class="surface-card-alt p-3 space-y-1.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold">${c.title}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-[#C8F526]/15 text-[#C8F526] font-bold">${c.badge}</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-black/35 overflow-hidden">
+              <div class="h-full bg-[#C8F526]" style="width:${pct}%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] opacity-75">
+              <span>Progres: ${c.current} / ${c.target} ${c.unit}</span>
+              <strong>${pct}% Selesai</strong>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const feedBox = document.getElementById('socialFeedContainer');
+    if (feedBox) {
+      feedBox.innerHTML = appState.socialFeed.map((post, idx) => `
+        <div class="surface-card-alt p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-extrabold">${post.author}</div>
+              <div class="text-[10px] text-[#C8F526] font-semibold">${post.tag}</div>
+            </div>
+            <span class="text-[11px] font-display font-bold">${post.metric}</span>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <button onclick="giveKudos(${idx})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${post.liked ? 'lime-btn' : 'surface-card'}">
+              👍 Kudos (${post.kudos})
+            </button>
+            <button onclick="givePrFistbump(${idx})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${post.bumped ? 'lime-btn' : 'surface-card'}">
+              🔥 PR Bump (${post.fistbumps})
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  window.giveKudos = function(idx) {
+    const p = appState.socialFeed[idx];
+    p.liked = !p.liked;
+    p.kudos += p.liked ? 1 : -1;
+    renderChallengesAndSocial();
+  };
+
+  window.givePrFistbump = function(idx) {
+    const p = appState.socialFeed[idx];
+    p.bumped = !p.bumped;
+    p.fistbumps += p.bumped ? 1 : -1;
+    renderChallengesAndSocial();
+  };
+
+  /* =========================================================
+     AI NUTRITION, TDEE & MONTHLY CALENDAR
+     ========================================================= */
+  window.scanPresetMeal = function(idx) {
+    const m = appState.presetMeals[idx];
+    appState.activeMeal = {
+      title: m.title,
+      baseCal: m.cal,
+      baseProt: m.prot,
+      baseCarb: m.carb,
+      baseFat: m.fat,
+      scale: 1.0
+    };
+    const slider = document.getElementById('portionSlider');
+    if (slider) slider.value = 100;
+    updateAiMealBoxUI();
+    showToast(`AI Vision berhasil memindai: ${m.title}`);
+  };
+
+  window.adjustMealPortion = function(pct) {
+    appState.activeMeal.scale = (parseInt(pct, 10) || 100) / 100;
+    document.getElementById('portionScaleLabel').textContent = `${pct}% (${appState.activeMeal.scale.toFixed(1)}x Porsi)`;
+    updateAiMealBoxUI();
+  };
+
+  function updateAiMealBoxUI() {
+    const m = appState.activeMeal;
+    const cal = Math.round(m.baseCal * m.scale);
+    const prot = Math.round(m.baseProt * m.scale);
+    const carb = Math.round(m.baseCarb * m.scale);
+    const fat = Math.round(m.baseFat * m.scale);
+
+    document.getElementById('aiMealTitle').textContent = m.title;
+    document.getElementById('aiMealCalBadge').textContent = `${cal} kcal`;
+    document.getElementById('aiMealProt').textContent = `${prot}g`;
+    document.getElementById('aiMealCarb').textContent = `${carb}g`;
+    document.getElementById('aiMealFat').textContent = `${fat}g`;
+  }
+
+  window.logCurrentAiMeal = function() {
+    const m = appState.activeMeal;
+    const addCal = Math.round(m.baseCal * m.scale);
+    const addProt = Math.round(m.baseProt * m.scale);
+    appState.consumedCalories += addCal;
+    appState.consumedProtein += addProt;
+    renderHomeDashboard();
+    showToast(`+${addCal} kcal & +${addProt}g Protein tercatat ke target harian!`);
+  };
+
+  window.recalcTdee = function() {
+    const w = parseFloat(document.getElementById('tdeeWeight').value) || 72;
+    const h = parseFloat(document.getElementById('tdeeHeight').value) || 173;
+    const goalDelta = parseInt(document.getElementById('tdeeGoal').value, 10) || 0;
+
+    // Mifflin-St Jeor (age 24 male baseline)
+    const bmr = Math.round(10 * w + 6.25 * h - 5 * 24 + 5);
+    const maintenance = Math.round(bmr * 1.5);
+    const targetCal = maintenance + goalDelta;
+    const targetProt = Math.round(w * 2.1);
+
+    appState.bmr = bmr;
+    appState.tdee = targetCal;
+    appState.targetProtein = targetProt;
+
+    document.getElementById('calcBmrOut').textContent = `${formatNumberID(bmr)} kcal`;
+    document.getElementById('calcTdeeOut').textContent = `${formatNumberID(targetCal)} kcal`;
+    document.getElementById('calcProtOut').textContent = `${targetProt}g / hari`;
+    renderHomeDashboard();
+  };
+
+  function renderMonthlyCalendar() {
+    const grid = document.getElementById('monthlyCalendarGrid');
+    if (!grid) return;
+    let html = '';
+    const highlighted = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
+    for (let d = 1; d <= 30; d++) {
+      const isDone = highlighted.includes(d);
+      html += `
+        <div class="h-9 rounded-full flex items-center justify-center font-bold ${isDone ? 'bg-[#438257] text-white shadow' : 'surface-card-alt opacity-80'}">
+          ${d}
+        </div>
+      `;
+    }
+    grid.innerHTML = html;
+  }
+
+  /* =========================================================
+     ANALYTICS CHARTS & BODY MEASUREMENTS
+     ========================================================= */
+  function renderWeeklyConsistencyBars() {
+    const box = document.getElementById('weeklyConsistencyBars');
+    if (!box) return;
+    box.innerHTML = appState.weeklyConsistency.map(item => `
+      <div class="flex flex-col items-center gap-1.5">
+        <span class="text-[10px] font-bold opacity-80">${item.pct}%</span>
+        <div class="text-[9px] font-extrabold text-[#C8F526] tracking-tighter leading-none">|||</div>
+        <div class="slotted-bar-track">
+          <div class="slotted-bar-fill" style="height: ${item.pct}%"></div>
+        </div>
+        <span class="text-[10px] font-bold opacity-60">${item.day}</span>
+      </div>
+    `).join('');
+  }
+
+  window.renderBodyCurveChart = function() {
+    const svg = document.getElementById('bodyAnalyticsSvg');
+    const sel = document.getElementById('bodyMetricSelector');
+    if (!svg || !sel) return;
+    const key = sel.value;
+    const data = appState.bodyHistory[key] || appState.bodyHistory.weight;
+    const labels = appState.bodyHistory.labels;
+
+    const minVal = Math.min(...data) - 1;
+    const maxVal = Math.max(...data) + 1;
+    const w = 360, h = 150, padX = 32, padY = 24;
+
+    const pts = data.map((val, idx) => {
+      const x = padX + (idx / (data.length - 1)) * (w - padX * 2);
+      const y = h - padY - ((val - minVal) / (maxVal - minVal || 1)) * (h - padY * 2);
+      return { x, y, val, label: labels[idx] };
+    });
+
+    let pathD = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const xc = (pts[i - 1].x + pts[i].x) / 2;
+      const yc = (pts[i - 1].y + pts[i].y) / 2;
+      pathD += ` Q ${pts[i - 1].x} ${pts[i - 1].y}, ${xc} ${yc}`;
+    }
+    pathD += ` T ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`;
+
+    const areaD = `${pathD} L ${pts[pts.length - 1].x} ${h - padY} L ${pts[0].x} ${h - padY} Z`;
+    const lastPt = pts[pts.length - 1];
+    const delta = (data[data.length - 1] - data[0]).toFixed(1);
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="bodyCurveGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#C8F526" stop-opacity="0.38"/>
+          <stop offset="100%" stop-color="#C8F526" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <path d="${areaD}" fill="url(#bodyCurveGrad)" />
+      <path d="${pathD}" fill="none" stroke="#C8F526" stroke-width="3" stroke-linecap="round" />
+      ${pts.map(p => `
+        <circle cx="${p.x}" cy="${p.y}" r="4" fill="#0E110F" stroke="#C8F526" stroke-width="2.5" />
+        <text x="${p.x}" y="${h - 6}" text-anchor="middle" fill="#8E9B93" font-size="10">${p.label}</text>
+      `).join('')}
+      <rect x="${lastPt.x - 86}" y="${Math.max(6, lastPt.y - 36)}" width="82" height="24" rx="6" fill="#161B18" stroke="#C8F526" stroke-width="1"/>
+      <text x="${lastPt.x - 45}" y="${Math.max(22, lastPt.y - 20)}" text-anchor="middle" fill="#C8F526" font-size="10" font-weight="bold">
+        Now: ${lastPt.val} (${delta > 0 ? '+' + delta : delta})
+      </text>
+    `;
+  };
+
+  window.saveNewBodyMetrics = function() {
+    const w = parseFloat(document.getElementById('inpWeight').value) || 72;
+    const waist = parseFloat(document.getElementById('inpWaist').value) || 78.5;
+    const thigh = parseFloat(document.getElementById('inpThigh').value) || 56;
+    const arm = parseFloat(document.getElementById('inpArm').value) || 36.5;
+    const chest = parseFloat(document.getElementById('inpChest').value) || 101;
+
+    appState.bodyHistory.weight[appState.bodyHistory.weight.length - 1] = w;
+    appState.bodyHistory.waist[appState.bodyHistory.waist.length - 1] = waist;
+    appState.bodyHistory.thigh[appState.bodyHistory.thigh.length - 1] = thigh;
+    appState.bodyHistory.arm[appState.bodyHistory.arm.length - 1] = arm;
+    appState.bodyHistory.chest[appState.bodyHistory.chest.length - 1] = chest;
+
+    document.getElementById('goalCurrentWeight').textContent = `${w.toFixed(1)} KG`;
+    renderBodyCurveChart();
+    renderStudioCanvas();
+    showToast('Log ukuran tubuh (Berat, Pinggang, Paha, Lengan, Dada) berhasil diperbarui!');
+  };
+
+  function renderFitnessFreshnessChart() {
+    const svg = document.getElementById('fitnessFreshnessSvg');
+    if (!svg) return;
+    svg.innerHTML = `
+      <polyline fill="none" stroke="#C8F526" stroke-width="2.5" points="15,90 70,78 130,64 190,58 250,45 310,36 345,28" />
+      <polyline fill="none" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4 3" points="15,82 70,86 130,72 190,68 250,55 310,48 345,42" />
+      <text x="20" y="22" fill="#C8F526" font-size="10" font-weight="bold">— Fitness Score (74)</text>
+      <text x="155" y="22" fill="#38BDF8" font-size="10" font-weight="bold">--- Protein Recovery (92%)</text>
+    `;
+  }
+
+  /* =========================================================
+     IG STORY 9:16 (1080x1920) PRECISION STUDIO ENGINE
+     ========================================================= */
+  window.setStudioRatio = function(ratio) {
+    appState.studio.ratio = ratio;
+    const canvas = document.getElementById('stravaStudioCanvas');
+    if (ratio === '9:16') {
+      canvas.width = 1080;
+      canvas.height = 1920;
+      document.getElementById('ratioBtn916').className = 'px-2.5 py-1 rounded-lg text-[11px] lime-btn';
+      document.getElementById('ratioBtn45').className = 'px-2.5 py-1 rounded-lg text-[11px] surface-card-alt font-bold';
+    } else {
+      canvas.width = 1080;
+      canvas.height = 1350;
+      document.getElementById('ratioBtn45').className = 'px-2.5 py-1 rounded-lg text-[11px] lime-btn';
+      document.getElementById('ratioBtn916').className = 'px-2.5 py-1 rounded-lg text-[11px] surface-card-alt font-bold';
+    }
+    renderStudioCanvas();
+  };
+
+  window.setStudioTemplate = function(tpl) {
+    appState.studio.template = tpl;
+    ['gym', 'run', 'cycle', 'meal', 'recomp'].forEach(t => {
+      const btn = document.getElementById(`tpl-${t}`);
+      if (btn) {
+        btn.className = t === tpl
+          ? 'px-3 py-1.5 rounded-xl text-xs font-bold lime-btn whitespace-nowrap'
+          : 'px-3 py-1.5 rounded-xl text-xs font-bold surface-card-alt whitespace-nowrap';
+      }
+    });
+    renderStudioCanvas();
+  };
+
+  window.updateHudVerticalOffset = function(val) {
+    appState.studio.hudOffsetY = parseInt(val, 10) || 0;
+    renderStudioCanvas();
+  };
+
+  window.exportCurrentToStudio = function(tpl) {
+    switchTab('studio');
+    setStudioTemplate(tpl);
+    showToast('Kartu IG Story 9:16 siap dibagikan!');
+  };
+
+  function drawImageCover(ctx, img, w, h) {
+    const imgRatio = img.width / img.height;
+    const canvasRatio = w / h;
+    let sx, sy, sw, sh;
+    if (imgRatio > canvasRatio) {
+      sh = img.height;
+      sw = img.height * canvasRatio;
+      sx = (img.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = img.width;
+      sh = img.width / canvasRatio;
+      sx = 0;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  }
+
+  /**
+   * Draws the Precision 2x2 Metrics Grid pushed down into the Lower Safe Zone
+   * with generous breathing room above it (fixing User Image 5 request).
+   */
+  function drawPrecision2x2Grid(ctx, w, h, metrics, offsetY) {
+    const baseGridTop = (h === 1920 ? 1395 : 940) + offsetY;
+    const leftX = 96;
+    const col2X = 576;
+    const rowGap = 175;
+
+    // Subtle precision glass backing card
+    ctx.save();
+    ctx.fillStyle = 'rgba(11, 15, 13, 0.72)';
+    drawRoundRectPath(ctx, 64, baseGridTop - 58, w - 128, 370, 36);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200, 245, 38, 0.22)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Precision Crosshair Dividers
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, baseGridTop - 32);
+    ctx.lineTo(w / 2, baseGridTop + 282);
+    ctx.moveTo(96, baseGridTop + 125);
+    ctx.lineTo(w - 96, baseGridTop + 125);
+    ctx.stroke();
+
+    metrics.forEach((m, idx) => {
+      const isRight = idx % 2 === 1;
+      const isBottom = idx >= 2;
+      const x = isRight ? col2X : leftX;
+      const y = baseGridTop + (isBottom ? rowGap : 0);
+
+      // Uppercase Label
+      ctx.fillStyle = 'rgba(243, 247, 244, 0.72)';
+      ctx.font = '700 24px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(m.label.toUpperCase(), x, y);
+
+      // Bold Value
+      ctx.fillStyle = m.highlight ? '#C8F526' : '#FFFFFF';
+      ctx.font = '800 68px "Space Grotesk", sans-serif';
+      ctx.fillText(m.value, x, y + 74);
+    });
+    ctx.restore();
+  }
+
+  window.renderStudioCanvas = function() {
+    const canvas = document.getElementById('stravaStudioCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    const isTransparent = document.getElementById('transparentStickerToggle')?.checked;
+    const showBadge = document.getElementById('showTrophyBadgeToggle')?.checked;
+    const offsetY = appState.studio.hudOffsetY;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. Background Layer (unless Transparent Sticker Mode is ON)
+    if (!isTransparent) {
+      if (appState.studio.bgImage) {
+        drawImageCover(ctx, appState.studio.bgImage, w, h);
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(10, 14, 12, 0.55)');
+        grad.addColorStop(0.45, 'rgba(10, 14, 12, 0.18)');
+        grad.addColorStop(0.75, 'rgba(10, 14, 12, 0.75)');
+        grad.addColorStop(1, 'rgba(10, 14, 12, 0.95)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+        bgGrad.addColorStop(0, '#0E1511');
+        bgGrad.addColorStop(0.5, '#121D16');
+        bgGrad.addColorStop(1, '#090D0A');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Subtle athletic grid lines
+        ctx.strokeStyle = 'rgba(200, 245, 38, 0.05)';
+        ctx.lineWidth = 2;
+        for (let x = 0; x < w; x += 90) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 90) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+      }
+    }
+
+    // 2. Top Brand Header (Safe Zone Y = 120)
+    ctx.fillStyle = '#C8F526';
+    drawRoundRectPath(ctx, 84, 108, 230, 54, 27);
+    ctx.fill();
+    ctx.fillStyle = '#0E110F';
+    ctx.font = '800 25px "Space Grotesk", sans-serif';
+    ctx.fillText('⚡ FITSYNC PRO', 112, 144);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText(`IF ${appState.fastingProtocol} • Bukittinggi`, 336, 143);
+
+    // Optional KOM / Trophy Badge on Top Right
+    if (showBadge) {
+      ctx.fillStyle = 'rgba(200, 245, 38, 0.16)';
+      drawRoundRectPath(ctx, w - 360, 104, 276, 60, 30);
+      ctx.fill();
+      ctx.strokeStyle = '#C8F526';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#C8F526';
+      ctx.font = '700 22px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('👑 LOCAL LEGEND', w - 332, 142);
+    }
+
+    // 3. Center Visual Hero (Leaves generous breathing space before Lower 2x2 Grid)
+    const tpl = appState.studio.template;
+    let titleText = `${appState.currentSplit.toUpperCase()} DAY SESSION`;
+    let subText = 'HYPERTROPHY & PROGRESSIVE OVERLOAD';
+    let metrics4 = [];
+
+    if (tpl === 'gym') {
+      const vol = formatNumberID(getGymTotalVolume());
+      const sets = getGymCompletedSets();
+      const prs = getGymPrCount();
+      metrics4 = [
+        { label: 'TOTAL VOLUME', value: `${vol} KG`, highlight: true },
+        { label: 'COMPLETED SETS', value: `${sets} SETS`, highlight: false },
+        { label: 'PERSONAL RECORDS', value: `${prs} NEW PR 🔥`, highlight: true },
+        { label: 'ACTIVE CALORIES', value: `${appState.activeCalories} KCAL`, highlight: false }
+      ];
+
+      // Center Minimalist Barbell / Muscle Ring Graphic
+      ctx.save();
+      ctx.strokeStyle = 'rgba(200, 245, 38, 0.28)';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(w / 2, h * 0.42, 190, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 64px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(titleText, w / 2, h * 0.41);
+      ctx.fillStyle = '#C8F526';
+      ctx.font = '700 28px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText(subText, w / 2, h * 0.41 + 52);
+      ctx.restore();
+
+    } else if (tpl === 'run') {
+      titleText = appState.runData.title.toUpperCase();
+      subText = 'STRAVA GPS VERIFIED ROUTE • +118M ELEV';
+      metrics4 = [
+        { label: 'DISTANCE', value: `${appState.runData.distanceKm.toFixed(2)} KM`, highlight: true },
+        { label: 'AVG PACE', value: `${computePaceString(appState.runData.distanceKm, appState.runData.movingSeconds)} /KM`, highlight: false },
+        { label: 'MOVING TIME', value: formatDurationMMSS(appState.runData.movingSeconds), highlight: true },
+        { label: 'CADENCE / HR', value: `${appState.runData.cadence} SPM`, highlight: false }
+      ];
+
+      // Draw Big Neon GPS Route Polyline in Center
+      ctx.save();
+      const routePts = [
+        { x: 260, y: h * 0.46 },
+        { x: 350, y: h * 0.33 },
+        { x: 560, y: h * 0.30 },
+        { x: 780, y: h * 0.35 },
+        { x: 830, y: h * 0.47 },
+        { x: 540, y: h * 0.51 },
+        { x: 290, y: h * 0.47 }
+      ];
+      ctx.strokeStyle = '#C8F526';
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(200, 245, 38, 0.8)';
+      ctx.shadowBlur = 28;
+      ctx.beginPath();
+      routePts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 54px "Space Grotesk", sans-serif';
+      ctx.fillText(titleText, w / 2, h * 0.24);
+      ctx.restore();
+
+    } else if (tpl === 'cycle') {
+      const sp = appState.multiSports[appState.selectedMultiSportIndex];
+      titleText = sp.name.toUpperCase();
+      metrics4 = [
+        { label: 'ACTIVE DURATION', value: `${appState.multiDurationMin} MIN`, highlight: true },
+        { label: 'PERFORMANCE', value: sp.unit.toUpperCase(), highlight: false },
+        { label: 'METS BURNED', value: '540 KCAL', highlight: true },
+        { label: 'HEART RATE', value: `${appState.heartRate} BPM`, highlight: false }
+      ];
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 62px "Space Grotesk", sans-serif';
+      ctx.fillText(`${sp.icon} ${titleText}`, w / 2, h * 0.42);
+      ctx.restore();
+
+    } else if (tpl === 'meal') {
+      const m = appState.activeMeal;
+      const cal = Math.round(m.baseCal * m.scale);
+      const prot = Math.round(m.baseProt * m.scale);
+      metrics4 = [
+        { label: 'MEAL CALORIES', value: `${cal} KCAL`, highlight: true },
+        { label: 'HIGH PROTEIN', value: `${prot}G PROT`, highlight: true },
+        { label: 'FASTING WINDOW', value: `IF ${appState.fastingProtocol}`, highlight: false },
+        { label: 'DAILY TARGET', value: `${appState.consumedProtein}/${appState.targetProtein}G`, highlight: false }
+      ];
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 48px "Space Grotesk", sans-serif';
+      ctx.fillText(m.title.toUpperCase(), w / 2, h * 0.42);
+      ctx.restore();
+
+    } else {
+      const wNow = appState.bodyHistory.weight.slice(-1)[0];
+      const waistNow = appState.bodyHistory.waist.slice(-1)[0];
+      metrics4 = [
+        { label: 'CURRENT WEIGHT', value: `${wNow} KG`, highlight: false },
+        { label: 'WAIST DELTA', value: '-3.2 CM 🔥', highlight: true },
+        { label: 'WAIST SIZE', value: `${waistNow} CM`, highlight: false },
+        { label: 'CONSISTENCY', value: '94% STREAK', highlight: true }
+      ];
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 58px "Space Grotesk", sans-serif';
+      ctx.fillText('BODY RECOMPOSITION', w / 2, h * 0.42);
+      ctx.restore();
+    }
+
+    // 4. Draw the Precision 2x2 Grid in the Lower Safe-Zone
+    drawPrecision2x2Grid(ctx, w, h, metrics4, offsetY);
+
+    // 5. Bottom Watermark Signature
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.font = '600 22px "Plus Jakarta Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('TRACKED WITH FITSYNC • HYBRID GYM, GPS & AI NUTRITION', w / 2, h - 48);
+    ctx.textAlign = 'left';
+  };
+
+  window.handleGalleryUpload = function(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = new Image();
+      img.onload = function() {
+        appState.studio.bgImage = img;
+        switchTab('studio');
+        renderStudioCanvas();
+        showToast('Foto berhasil dipasang ke kanvas 9:16!');
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.downloadStudioImage = function() {
+    const canvas = document.getElementById('stravaStudioCanvas');
+    const link = document.createElement('a');
+    link.download = `FITSYNC_${appState.studio.template}_${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('Gambar IG Story 1080x1920 berhasil diunduh!');
+  };
+
+  window.shareToInstagramStory = async function() {
+    const canvas = document.getElementById('stravaStudioCanvas');
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const file = new File([blob], 'fitsync-story.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'FitSync Activity Story',
+            text: 'Latihan & Diet hari ini via FitSync!'
+          });
+        } catch (err) {
+          downloadStudioImage();
+        }
+      } else {
+        downloadStudioImage();
+      }
+    }, 'image/png');
+  };
+
+  /* =========================================================
+     IN-APP WEBRTC LIVE CAMERA & BEACON SAFELINK MODALS
+     ========================================================= */
+  window.openLiveCameraModal = async function(targetMode = 'studio') {
+    const modal = document.getElementById('cameraModal');
+    const video = document.getElementById('cameraVideoEl');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    try {
+      if (appState.studio.cameraStream) {
+        appState.studio.cameraStream.getTracks().forEach(t => t.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: appState.studio.facingMode, width: { ideal: 1080 }, height: { ideal: 1920 } },
+        audio: false
+      });
+      appState.studio.cameraStream = stream;
+      video.srcObject = stream;
+    } catch (e) {
+      showToast('Mengalihkan ke pemilih kamera native HP...');
+    }
+  };
+
+  window.closeLiveCameraModal = function() {
+    const modal = document.getElementById('cameraModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    if (appState.studio.cameraStream) {
+      appState.studio.cameraStream.getTracks().forEach(t => t.stop());
+      appState.studio.cameraStream = null;
+    }
+  };
+
+  window.switchCameraFacing = function() {
+    appState.studio.facingMode = appState.studio.facingMode === 'environment' ? 'user' : 'environment';
+    openLiveCameraModal();
+  };
+
+  window.toggleCameraMirror = function() {
+    const video = document.getElementById('cameraVideoEl');
+    appState.studio.mirror = !appState.studio.mirror;
+    video.style.transform = appState.studio.mirror ? 'scaleX(-1)' : 'scaleX(1)';
+  };
+
+  window.captureLivePhoto = function() {
+    const video = document.getElementById('cameraVideoEl');
+    if (!video || !video.videoWidth) {
+      showToast('Silakan pilih foto dari tombol Kamera Native di bawah.');
+      return;
+    }
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
+    const tCtx = tempCanvas.getContext('2d');
+    if (appState.studio.mirror) {
+      tCtx.translate(tempCanvas.width, 0);
+      tCtx.scale(-1, 1);
+    }
+    tCtx.drawImage(video, 0, 0);
+
+    const img = new Image();
+    img.onload = function() {
+      appState.studio.bgImage = img;
+      closeLiveCameraModal();
+      switchTab('studio');
+      renderStudioCanvas();
+      showToast('Foto kamera berhasil ditangkap ke Studio IG 9:16!');
+    };
+    img.src = tempCanvas.toDataURL('image/png');
+  };
+
+  window.openBeaconModal = function() {
+    const m = document.getElementById('beaconModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  };
+
+  window.closeBeaconModal = function() {
+    const m = document.getElementById('beaconModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  };
+
+  window.shareBeaconWhatsApp = function() {
+    const text = encodeURIComponent(
+      `🛰️ *FITSYNC SAFELINK LIVE BEACON*\nSaya sedang berolahraga sekarang.\n📍 Lokasi GPS: -0.3051, 100.3692\n💚 Detak Jantung: ${appState.heartRate} bpm\n⏱️ Status Diet: IF ${appState.fastingProtocol}\n🔋 Baterai: 84%`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    closeBeaconModal();
+  };
+
+  window.toggleBleHr = function() {
+    appState.heartRate = appState.heartRate === 142 ? 156 : 142;
+    document.getElementById('bleBadge').textContent = `♥ BLE ${appState.heartRate} bpm`;
+    document.getElementById('pillHeart').textContent = `${appState.heartRate} bpm`;
+    showToast(`Sensor detak jantung disinkronkan: ${appState.heartRate} bpm`);
+  };
+
+  /* =========================================================
+     INITIALIZATION & LIVE COUNTDOWN TIMERS
+     ========================================================= */
+  function startFastingCountdown() {
+    setInterval(() => {
+      if (appState.fastingSecondsLeft > 0) appState.fastingSecondsLeft--;
+      const h = Math.floor(appState.fastingSecondsLeft / 3600);
+      const m = Math.floor((appState.fastingSecondsLeft % 3600) / 60);
+      const s = appState.fastingSecondsLeft % 60;
+      const el = document.getElementById('fastingCountdownText');
+      if (el) {
+        el.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+    }, 1000);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    renderHomeDashboard();
+    renderGymLogger();
+    renderRunSection();
+    renderMultiSportAndKom();
+    renderChallengesAndSocial();
+    updateAiMealBoxUI();
+    renderMonthlyCalendar();
+    renderWeeklyConsistencyBars();
+    renderBodyCurveChart();
+    renderFitnessFreshnessChart();
+    renderStudioCanvas();
+    startFastingCountdown();
+  });
+</script>
+</body>
+</html>
