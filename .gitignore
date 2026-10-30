@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Downloaded APK artifacts
+*.apk
+kinetz-debug-apk*/
+kinetz-debug-apk*.zip
