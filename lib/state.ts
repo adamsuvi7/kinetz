@@ -1,8 +1,10 @@
 // Central state + formulas ported 1:1 from prototype-reference.html (appState & helper functions).
+import type { ActiveRide, Ride } from './ride';
+import { DEFAULT_LAYERS, type Layer } from './story';
 
-export type Tab = 'home' | 'workout' | 'nutrition' | 'analytics' | 'studio';
+export type Tab = 'ride' | 'home' | 'workout' | 'nutrition' | 'analytics' | 'studio';
 export type WorkoutSub = 'gym' | 'run' | 'multi' | 'kom';
-export type StudioTemplate = 'gym' | 'run' | 'cycle' | 'meal' | 'recomp';
+export type StudioTemplate = 'ride' | 'gym' | 'run' | 'cycle' | 'meal' | 'recomp';
 export type BodyMetric = 'weight' | 'waist' | 'thigh' | 'arm' | 'chest';
 
 export type GymSet = { id: number; name: string; weight: number; reps: number; sets: number; done: boolean; isPr: boolean };
@@ -51,6 +53,8 @@ export type AppState = {
   activeMeal: Meal;
   bodyHistory: { labels: string[] } & Record<BodyMetric, number[]>;
   weeklyConsistency: { day: string; pct: number }[];
+  rides: Ride[];
+  activeRide: ActiveRide | null;
   studio: {
     ratio: '9:16' | '4:5';
     template: StudioTemplate;
@@ -58,12 +62,14 @@ export type AppState = {
     bgImage: HTMLImageElement | null;
     transparent: boolean;
     showBadge: boolean;
+    rideId: string | null;
+    rideLayers: Layer[];
   };
 };
 
 export const initialState: AppState = {
   theme: 'dark',
-  activeTab: 'home',
+  activeTab: 'ride',
   activeWorkoutSub: 'gym',
   heartRate: 142,
   bleBadgeHr: 74,
@@ -149,7 +155,7 @@ export const initialState: AppState = {
   ],
 
   socialFeed: [
-    { id: 101, author: 'Rizky Pratama', tag: 'Strava Run • 10.2 KM', metric: "Pace 5'09\"/km • +145m Elev", kudos: 24, fistbumps: 9, liked: false, bumped: false, comments: ['Kenceng banget pace KM terakhir! 🔥'] },
+    { id: 101, author: 'Rizky Pratama', tag: 'Lari GPS • 10.2 KM', metric: "Pace 5'09\"/km • +145m Elev", kudos: 24, fistbumps: 9, liked: false, bumped: false, comments: ['Kenceng banget pace KM terakhir! 🔥'] },
     { id: 102, author: 'Nadia Putri', tag: 'Push Day + IF 16:8', metric: 'Total Volume 4.820 KG • 2 New PR', kudos: 31, fistbumps: 18, liked: true, bumped: false, comments: ['PR Incline mantap kak!'] },
   ],
 
@@ -187,13 +193,18 @@ export const initialState: AppState = {
     { day: 'SUN', pct: 95 },
   ],
 
+  rides: [],
+  activeRide: null,
+
   studio: {
     ratio: '9:16',
-    template: 'gym',
+    template: 'ride',
     hudOffsetY: 25,
     bgImage: null,
     transparent: false,
-    showBadge: true,
+    showBadge: false,
+    rideId: null,
+    rideLayers: DEFAULT_LAYERS,
   },
 };
 

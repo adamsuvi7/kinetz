@@ -1,6 +1,6 @@
 'use client';
 
-import { formatNumberID } from '@/lib/fitsync';
+import { formatNumberID } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 const PRESET_CARDS = [

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { computePaceString, computeRiegelTime, formatDurationMMSS, riegelSeconds } from '@/lib/fitsync';
+import { computePaceString, computeRiegelTime, formatDurationMMSS, riegelSeconds } from '@/lib/state';
 import { renderRunRouteCanvas } from '@/lib/canvas';
 import { useApp } from '../AppProvider';
 
@@ -60,7 +60,7 @@ export default function RunPanel() {
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">STRAVA GPS ENGINE</span>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">GPS ENGINE</span>
             <h2 className="text-base font-extrabold mt-1">Pelacak Lari & Peta 3D</h2>
           </div>
           <select value={preset} onChange={(e) => changeRunPreset(e.target.value)} className="surface-card-alt text-xs font-bold px-2.5 py-1.5 rounded-xl outline-none">
@@ -108,7 +108,7 @@ export default function RunPanel() {
             onClick={() => exportToStudio('run')}
             className="px-4 py-2.5 rounded-xl text-xs surface-card-alt font-bold border border-[#C8F526]/40 text-[#C8F526]"
           >
-            Share Strava Story
+            Share Story
           </button>
         </div>
       </div>

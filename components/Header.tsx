@@ -35,7 +35,7 @@ export default function Header() {
               ♥ BLE {s.bleBadgeHr} bpm
             </span>
           </div>
-          <h1 className="text-base font-extrabold tracking-tight leading-tight">Hi, Athlete FitSync</h1>
+          <h1 className="text-base font-extrabold tracking-tight leading-tight">Hi, Athlete Kinetz</h1>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function Header() {
         <button
           onClick={() => setBeaconOpen(true)}
           className="p-2 rounded-full surface-card-alt text-xs font-bold flex items-center gap-1"
-          title="Strava Beacon SafeLink"
+          title="Beacon SafeLink"
         >
           <span className="w-2 h-2 rounded-full bg-amber-400 beacon-dot"></span>
           <span className="hidden sm:inline text-[11px]">Beacon</span>

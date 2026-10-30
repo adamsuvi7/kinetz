@@ -1,4 +1,4 @@
-# FITSYNC — Hybrid Fitness, Strava GPS, AI Nutrition & Analytics App
+# KINETZ (dulu FITSYNC) — GPS Ride, Hybrid Fitness, AI Nutrition & Analytics App
 
 ## 1. Project Overview & Reference File
 - **Acuan Utama**: Baca file `prototype-reference.html` (atau `index.html`) di repositori ini. Seluruh state, perhitungan, komponen UI, dan canvas rendering di dalam file tersebut sudah berjalan tanpa bug dan wajib dipertahankan saat dimodularisasi.
@@ -38,3 +38,11 @@ Pertahankan sistem dua tema yang dapat diganti secara instan:
    - **Aturan Tata Letak Presisi**: Blok metrik 2x2 di bagian bawah (`TOTAL VOLUME`, `COMPLETED SETS`, `PERSONAL RECORDS`, `ACTIVE CALORIES` atau metrik Lari/Diet) ditempatkan di **Lower Safe-Zone** (`Y ≈ 1395` pada kanvas `1920px`) dengan ruang tengah yang lega, garis pembagi simetris, dan slider pengatur posisi vertikal HUD secara real-time.
    - Mendukung Mode Stiker Transparan (PNG), WebRTC In-App Camera (putar kamera depan/belakang + mirror selfie gym), dan Web Share API.
    - Fitur tambahan Strava ATM: **AI Athlete Intelligence**, **Monthly Challenges Trophy**, **FitSync Club Feed (Kudos 👍 & PR Bump 🔥)**, dan **SafeLink Bio-Beacon** ke WhatsApp.
+
+## 6. Implementasi Kinetz (Next.js + Capacitor)
+- **Nama aplikasi: Kinetz.** Jangan pakai nama/merek Strava di UI atau story (hindari kesan afiliasi).
+- **Fokus utama: bersepeda.** Tab pertama = perekam ride GPS (`components/ride/RideTab.tsx`), template story default = Ride GPS. Gym/diet/analytics tetap ada.
+- **GPS**: `lib/gps.ts` (Android: `@capacitor-community/background-geolocation`, tetap merekam saat layar terkunci; web: `watchPosition` + Wake Lock). Matematika ride murni di `lib/ride.ts`, diuji `npm test`.
+- **Story editor**: `lib/story.ts` (layer bisa diseret: judul, tanggal, rute GPS, statistik, logo, teks/label event). Isi story hanya data nyata dari ride; jangan ada angka, lokasi, atau klaim karangan.
+- **Data**: IndexedDB (`lib/persist.ts`); ride tersimpan di key terpisah.
+- **Android**: `npm run build:mobile` (static export ke `out/`, route API dilewati) lalu `cap sync`. APK dibangun di GitHub Actions (`.github/workflows/android.yml`).

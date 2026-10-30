@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { last, type BodyMetric } from '@/lib/fitsync';
+import { last, type BodyMetric } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 const INPUTS: { key: BodyMetric; label: string; fallback: number; accent?: boolean }[] = [

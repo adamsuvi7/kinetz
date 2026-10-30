@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkoutSub } from '@/lib/fitsync';
+import type { WorkoutSub } from '@/lib/state';
 import { useApp } from '../AppProvider';
 import GymPanel from './GymPanel';
 import RunPanel from './RunPanel';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { formatNumberID, gymCompletedSets, gymPrCount, gymTotalVolume, last, type GymSet } from '@/lib/fitsync';
+import { formatNumberID, gymCompletedSets, gymPrCount, gymTotalVolume, last, type GymSet } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 type Field = 'sets' | 'weight' | 'reps';

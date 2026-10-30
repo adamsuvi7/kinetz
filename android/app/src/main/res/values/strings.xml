@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kinetz</string>
+    <string name="title_activity_main">Kinetz</string>
+    <string name="package_name">com.kinetz.app</string>
+    <string name="custom_url_scheme">com.kinetz.app</string>
+    <string name="capacitor_background_geolocation_notification_channel_name">Rekam ride</string>
+    <string name="capacitor_background_geolocation_notification_icon">drawable/ic_tracking</string>
+    <string name="capacitor_background_geolocation_notification_color">#C8F526</string>
+</resources>

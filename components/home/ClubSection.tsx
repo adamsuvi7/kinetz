@@ -21,7 +21,7 @@ export default function ClubSection() {
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold">🏆 Monthly Challenges (Strava Hybrid)</h3>
+            <h3 className="text-sm font-bold">🏆 Monthly Challenges (Hybrid)</h3>
             <p className="text-[11px] opacity-65">Kumpulkan lencana & tempel ke IG Story 9:16</p>
           </div>
           <span className="text-[11px] font-bold text-[#C8F526]">3 Aktif</span>
@@ -52,7 +52,7 @@ export default function ClubSection() {
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-bold">🌐 FitSync Club Feed (Kudos & PR)</h3>
+            <h3 className="text-sm font-bold">🌐 Kinetz Club Feed (Kudos & PR)</h3>
             <p className="text-[11px] opacity-65">Berikan Kudos 👍 atau PR Fistbump 🔥 ke sesama atlet</p>
           </div>
           <button onClick={() => switchTab('studio')} className="text-[11px] font-bold text-[#C8F526]">

@@ -7,7 +7,7 @@ export default function BeaconModal() {
 
   const shareBeaconWhatsApp = () => {
     const text = encodeURIComponent(
-      `🛰️ *FITSYNC SAFELINK LIVE BEACON*\nSaya sedang berolahraga sekarang.\n📍 Lokasi GPS: -0.3051, 100.3692\n💚 Detak Jantung: ${s.heartRate} bpm\n⏱️ Status Diet: IF ${s.fastingProtocol}\n🔋 Baterai: 84%`,
+      `🛰️ *KINETZ SAFELINK LIVE BEACON*\nSaya sedang berolahraga sekarang.\n📍 Lokasi GPS: -0.3051, 100.3692\n💚 Detak Jantung: ${s.heartRate} bpm\n⏱️ Status Diet: IF ${s.fastingProtocol}\n🔋 Baterai: 84%`,
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
     setBeaconOpen(false);
@@ -19,7 +19,7 @@ export default function BeaconModal() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-amber-400 beacon-dot"></span>
-            <h3 className="text-sm font-extrabold">🛰️ FitSync SafeLink (Bio-Beacon)</h3>
+            <h3 className="text-sm font-extrabold">🛰️ Kinetz SafeLink (Bio-Beacon)</h3>
           </div>
           <button onClick={() => setBeaconOpen(false)} className="px-2.5 py-1 rounded-lg surface-card-alt text-xs font-bold">
             ✕

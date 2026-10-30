@@ -1,15 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import type { AppState, StudioTemplate } from '@/lib/fitsync';
+import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from 'react';
+import { last, type AppState, type StudioTemplate } from '@/lib/state';
 import { renderStudioCanvas } from '@/lib/canvas';
 import { loadImageFile } from '@/lib/image';
+import { downloadCanvas, shareCanvas } from '@/lib/share';
+import { FRAME_H, renderRideStory, type Box, type Layer } from '@/lib/story';
 import { useApp } from '../AppProvider';
+import RideStoryEditor from './RideStoryEditor';
 
 const TEMPLATES: { tpl: StudioTemplate; label: string }[] = [
+  { tpl: 'ride', label: '🚴 Ride GPS' },
   { tpl: 'gym', label: '🏋️ Gym Volume & PR' },
-  { tpl: 'run', label: '🏃 Strava Run GPS' },
-  { tpl: 'cycle', label: '🚴 Cycling / Sport' },
+  { tpl: 'run', label: '🏃 Lari' },
+  { tpl: 'cycle', label: '🎾 Multi-Sport' },
   { tpl: 'meal', label: '🍽️ AI Meal & IF' },
   { tpl: 'recomp', label: '📏 Body & Trophy' },
 ];
@@ -19,7 +23,21 @@ export default function StudioTab() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fontsReady, setFontsReady] = useState(false);
   const st = s.studio;
+  const isRide = st.template === 'ride';
   const setStudio = (patch: Partial<AppState['studio']>) => set((p) => ({ ...p, studio: { ...p.studio, ...patch } }));
+
+  // Story layout is edited locally (drag = many updates) and synced to app state once it settles.
+  const [layers, setLayers] = useState<Layer[]>(st.rideLayers);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const boxesRef = useRef<Record<string, Box>>({});
+  const dragRef = useRef<{ id: string; px: number; py: number; x: number; y: number } | null>(null);
+  const ride = s.rides.find((r) => r.id === st.rideId) ?? s.rides[0] ?? null;
+  const weightKg = last(s.bodyHistory.weight) || 72;
+
+  useEffect(() => {
+    const t = setTimeout(() => set((p) => (p.studio.rideLayers === layers ? p : { ...p, studio: { ...p.studio, rideLayers: layers } })), 300);
+    return () => clearTimeout(t);
+  }, [layers, set]);
 
   // Redraw once web fonts arrive, otherwise the first render falls back to system fonts.
   useEffect(() => {
@@ -27,43 +45,77 @@ export default function StudioTab() {
   }, []);
 
   useEffect(() => {
-    if (canvasRef.current) renderStudioCanvas(canvasRef.current, s);
-  }, [s, fontsReady]);
+    const c = canvasRef.current;
+    if (!c) return;
+    if (isRide) {
+      boxesRef.current = renderRideStory(c, { ride, layers, weightKg, bgImage: st.bgImage, transparent: st.transparent, guides: true, selectedId });
+    } else {
+      renderStudioCanvas(c, s);
+    }
+  }, [s, fontsReady, isRide, ride, layers, weightKg, selectedId, st.bgImage, st.transparent]);
+
+  const toCanvas = (e: PointerEvent<HTMLCanvasElement>) => {
+    const c = e.currentTarget;
+    const r = c.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) * c.width) / r.width, y: ((e.clientY - r.top) * c.height) / r.height };
+  };
+
+  const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (!isRide) return;
+    const p = toCanvas(e);
+    const pad = 24;
+    const hit = [...layers].reverse().find((l) => {
+      const b = boxesRef.current[l.id];
+      return l.visible && b && p.x >= b.x - pad && p.x <= b.x + b.w + pad && p.y >= b.y - pad && p.y <= b.y + b.h + pad;
+    });
+    setSelectedId(hit?.id ?? null);
+    if (!hit) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { id: hit.id, px: p.x, py: p.y, x: hit.x, y: hit.y };
+  };
+
+  const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const p = toCanvas(e);
+    const ky = FRAME_H / e.currentTarget.height;
+    setLayers((ls) => ls.map((l) => (l.id === d.id ? { ...l, x: Math.round(d.x + p.x - d.px), y: Math.round(d.y + (p.y - d.py) * ky) } : l)));
+  };
+
+  const endDrag = () => (dragRef.current = null);
+
+  // Exports never include the editor guides or the selection outline.
+  const exportCanvas = () => {
+    const c = canvasRef.current!;
+    if (!isRide) return c;
+    const out = document.createElement('canvas');
+    out.width = c.width;
+    out.height = c.height;
+    renderRideStory(out, { ride, layers, weightKg, bgImage: st.bgImage, transparent: st.transparent, guides: false, selectedId: null });
+    return out;
+  };
+
+  const filename = () => `KINETZ_${st.template}_${Date.now()}.png`;
 
   const handleGalleryUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     try {
-      setBgImage(await loadImageFile(file), 'Foto berhasil dipasang ke kanvas 9:16!');
+      setBgImage(await loadImageFile(file), 'Foto berhasil dipasang ke kanvas story!');
     } catch {
       toast('Foto gagal dibaca, coba file lain.');
     }
   };
 
-  const downloadStudioImage = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = `FITSYNC_${st.template}_${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    toast('Gambar IG Story 1080x1920 berhasil diunduh!');
+  const download = async () => {
+    const r = await downloadCanvas(exportCanvas(), filename());
+    if (r === 'downloaded') toast(`Gambar ${st.ratio === '9:16' ? '1080x1920' : '1080x1350'} berhasil diunduh!`);
   };
 
-  const shareToInstagramStory = () => {
-    canvasRef.current?.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], 'fitsync-story.png', { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: 'FitSync Activity Story', text: 'Latihan & Diet hari ini via FitSync!' });
-        } catch {
-          downloadStudioImage();
-        }
-      } else {
-        downloadStudioImage();
-      }
-    }, 'image/png');
+  const share = async () => {
+    const r = await shareCanvas(exportCanvas(), filename());
+    if (r === 'downloaded') toast('Berbagi tidak didukung di perangkat ini, gambar diunduh.');
   };
 
   return (
@@ -71,8 +123,10 @@ export default function StudioTab() {
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">1080×1920 IG STORY ENGINE</span>
-            <h2 className="text-base font-extrabold mt-1">Strava Social Share Studio</h2>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">
+              {st.ratio === '9:16' ? '1080×1920 IG STORY' : '1080×1350 IG FEED'}
+            </span>
+            <h2 className="text-base font-extrabold mt-1">Story Studio</h2>
           </div>
           <div className="flex gap-1">
             {(['9:16', '4:5'] as const).map((r) => (
@@ -100,39 +154,70 @@ export default function StudioTab() {
           ))}
         </div>
 
-        {/* Precision Vertical Offset Slider for Lower 2x2 Metrics Grid */}
         <div className="surface-card-alt p-3 my-2 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold">📐 Posisi Vertikal Blok Metrik Bawah:</span>
-            <span className="font-display font-bold text-[#C8F526]">Lower Safe-Zone (Presisi)</span>
-          </div>
-          <input
-            type="range"
-            min="-140"
-            max="90"
-            step="5"
-            value={st.hudOffsetY}
-            onChange={(e) => setStudio({ hudOffsetY: parseInt(e.target.value, 10) || 0 })}
-            className="w-full accent-[#C8F526]"
-          />
-          <div className="flex items-center justify-between text-[11px] opacity-75 pt-1">
+          {!isRide && (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold">📐 Posisi Vertikal Blok Metrik Bawah:</span>
+                <span className="font-display font-bold text-[#C8F526]">Lower Safe-Zone (Presisi)</span>
+              </div>
+              <input
+                type="range"
+                min="-140"
+                max="90"
+                step="5"
+                value={st.hudOffsetY}
+                onChange={(e) => setStudio({ hudOffsetY: parseInt(e.target.value, 10) || 0 })}
+                className="w-full accent-[#C8F526]"
+              />
+            </>
+          )}
+          <div className="flex items-center justify-between gap-3 text-[11px] opacity-75 pt-1">
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input type="checkbox" checked={st.transparent} onChange={(e) => setStudio({ transparent: e.target.checked })} className="accent-[#C8F526]" />
-              <span>Mode Stiker Transparan (PNG tanpa background)</span>
+              <span>Stiker transparan (PNG tanpa background)</span>
             </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" checked={st.showBadge} onChange={(e) => setStudio({ showBadge: e.target.checked })} className="accent-[#C8F526]" />
-              <span>Tampilkan Badge KOM/Trophy</span>
-            </label>
+            {!isRide && (
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={st.showBadge} onChange={(e) => setStudio({ showBadge: e.target.checked })} className="accent-[#C8F526]" />
+                <span>Badge Local Legend</span>
+              </label>
+            )}
           </div>
         </div>
 
-        {/* Canvas Preview Container: 1080x1920 (9:16) or 1080x1350 (4:5) */}
+        {/* Canvas Preview: 1080x1920 (9:16) or 1080x1350 (4:5) */}
         <div className="flex justify-center my-3">
-          <div className="w-full max-w-[300px] rounded-2xl overflow-hidden border border-white/15 shadow-2xl bg-[#090C0A]">
-            <canvas ref={canvasRef} width={1080} height={st.ratio === '9:16' ? 1920 : 1350} className="w-full h-auto block"></canvas>
+          <div
+            className="w-full max-w-[300px] rounded-2xl overflow-hidden border border-white/15 shadow-2xl"
+            style={st.transparent ? { backgroundImage: 'repeating-conic-gradient(#2a2f2c 0% 25%, #1b1f1d 0% 50%)', backgroundSize: '20px 20px' } : { backgroundColor: '#090C0A' }}
+          >
+            <canvas
+              ref={canvasRef}
+              width={1080}
+              height={st.ratio === '9:16' ? 1920 : 1350}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              className={`w-full h-auto block${isRide ? ' touch-none cursor-move' : ''}`}
+            ></canvas>
           </div>
         </div>
+
+        {isRide && (
+          <div className="mb-3">
+            <RideStoryEditor
+              layers={layers}
+              onChange={setLayers}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              rides={s.rides}
+              ride={ride}
+              onPickRide={(id) => setStudio({ rideId: id })}
+            />
+          </div>
+        )}
 
         {/* Camera / Upload / Export Controls */}
         <div className="grid grid-cols-2 gap-2 mb-2">
@@ -149,14 +234,19 @@ export default function StudioTab() {
             <input type="file" accept="image/*" onChange={handleGalleryUpload} className="hidden" />
           </label>
         </div>
+        {st.bgImage && (
+          <button onClick={() => setStudio({ bgImage: null })} className="w-full mb-2 text-[11px] opacity-60 underline">
+            Hapus foto latar
+          </button>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={shareToInstagramStory} className="py-3 rounded-xl text-xs lime-btn flex items-center justify-center gap-1.5">
+          <button onClick={share} className="py-3 rounded-xl text-xs lime-btn flex items-center justify-center gap-1.5">
             <span>📲</span>
             <span>Share ke IG Story</span>
           </button>
           <button
-            onClick={downloadStudioImage}
+            onClick={download}
             className="py-3 rounded-xl text-xs surface-card-alt font-extrabold flex items-center justify-center gap-1.5 border border-white/15"
           >
             <span>⬇️</span>

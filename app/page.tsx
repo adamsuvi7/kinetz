@@ -1,5 +1,5 @@
-import FitSyncApp from "@/components/FitSyncApp";
+import KinetzApp from "@/components/KinetzApp";
 
 export default function Page() {
-  return <FitSyncApp />;
+  return <KinetzApp />;
 }

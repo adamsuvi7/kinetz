@@ -1,6 +1,6 @@
 'use client';
 
-import { computeRiegelTime, formatNumberID, gymTotalVolume, last } from '@/lib/fitsync';
+import { computeRiegelTime, formatNumberID, gymTotalVolume, last } from '@/lib/state';
 import { useApp } from '../AppProvider';
 import FastingGauge from './FastingGauge';
 import TodayWorkoutCard from './TodayWorkoutCard';
@@ -8,7 +8,7 @@ import ClubSection from './ClubSection';
 
 const CATEGORIES = [
   { cat: 'gym', icon: '🏋️', label: 'Strength' },
-  { cat: 'run', icon: '🏃', label: 'Strava Run' },
+  { cat: 'run', icon: '🏃', label: 'Lari GPS' },
   { cat: 'cycle', icon: '🚴', label: 'Cycling' },
   { cat: 'multisport', icon: '🎾', label: 'Padel/Sport' },
 ] as const;
@@ -24,7 +24,7 @@ export default function HomeTab() {
   const refreshAiIntelligence = () => {
     const messages = [
       `Volume ${s.currentSplit} Day mencapai ${formatNumberID(gymTotalVolume(s.gymSets))} KG dengan 2 Rekor PR baru! Protein harian ${Math.round((s.consumedProtein / s.targetProtein) * 100)}% terpenuhi. Pertahankan defisit kalori untuk memangkas lingkar pinggang.`,
-      `Analisis Strava Hybrid: Cadence lari kamu stabil di ${s.runData.cadence} spm dengan estimasi waktu 5K ${computeRiegelTime(s.runData, 5)}. Asupan protein (${s.consumedProtein}g) menjaga pemulihan otot tetap hijau (Readiness 91%).`,
+      `Analisis Hybrid: Cadence lari kamu stabil di ${s.runData.cadence} spm dengan estimasi waktu 5K ${computeRiegelTime(s.runData, 5)}. Asupan protein (${s.consumedProtein}g) menjaga pemulihan otot tetap hijau (Readiness 91%).`,
       `Body Recomposition Insight: Berat badan turun ke ${last(s.bodyHistory.weight)} kg sementara beban angkatan relatif naik ke 1.41x BW. Jadwal puasa ${s.fastingProtocol} berjalan optimal.`,
     ];
     set((p) => ({ ...p, aiText: messages[Math.floor(Math.random() * messages.length)] }));
@@ -32,6 +32,7 @@ export default function HomeTab() {
   };
 
   const openCategoryQuick = (cat: (typeof CATEGORIES)[number]['cat']) => {
+    if (cat === 'cycle') return switchTab('ride');
     switchTab('workout');
     switchWorkoutSub(cat === 'gym' ? 'gym' : cat === 'run' ? 'run' : 'multi');
   };
@@ -100,7 +101,7 @@ export default function HomeTab() {
         ))}
       </div>
 
-      {/* FITSYNC ATHLETE INTELLIGENCE */}
+      {/* KINETZ ATHLETE INTELLIGENCE */}
       <div className="surface-card p-4 relative overflow-hidden">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

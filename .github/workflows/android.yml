@@ -1,0 +1,40 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+      - run: npm test
+
+      # Static export + cap sync. Set repo variable KINETZ_API_BASE (e.g. https://kinetz.vercel.app)
+      # so the AI food scan in the app can reach the deployed /api/analyze-food.
+      - run: npm run build:mobile
+        env:
+          NEXT_PUBLIC_API_BASE: ${{ vars.KINETZ_API_BASE }}
+
+      - name: Build debug APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kinetz-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

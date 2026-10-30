@@ -28,7 +28,29 @@ const SCHEMA = {
 
 const num = (v: unknown, max: number) => Math.min(max, Math.max(0, Math.round(Number(v) || 0)));
 
+// The Android app (Capacitor WebView) runs on https://localhost and calls this deployed route cross-origin.
+const APP_ORIGINS = new Set(['https://localhost', 'capacitor://localhost']);
+
+function withCors(req: Request, res: Response) {
+  const origin = req.headers.get('origin');
+  if (origin && APP_ORIGINS.has(origin)) {
+    res.headers.set('Access-Control-Allow-Origin', origin);
+    res.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.headers.set('Vary', 'Origin');
+  }
+  return res;
+}
+
+export function OPTIONS(req: Request) {
+  return withCors(req, new Response(null, { status: 204 }));
+}
+
 export async function POST(req: Request) {
+  return withCors(req, await analyze(req));
+}
+
+async function analyze(req: Request) {
   let image: unknown;
   try {
     ({ image } = await req.json());

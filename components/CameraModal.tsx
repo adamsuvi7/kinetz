@@ -100,7 +100,7 @@ export default function CameraModal() {
           ></video>
           {/* 9:16 Safe Zone Guide Overlay */}
           <div className="absolute inset-4 border border-dashed border-[#C8F526]/45 rounded-xl pointer-events-none flex flex-col justify-between p-3">
-            <span className="text-[10px] font-bold text-[#C8F526] bg-black/60 px-2 py-0.5 rounded self-start">FITSYNC 9:16 GUIDE</span>
+            <span className="text-[10px] font-bold text-[#C8F526] bg-black/60 px-2 py-0.5 rounded self-start">KINETZ 9:16 GUIDE</span>
             <span className="text-[10px] font-bold text-white/80 bg-black/60 px-2 py-0.5 rounded self-center">Area Presisi Metrik Bawah</span>
           </div>
         </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import type { Tab } from '@/lib/fitsync';
+import type { Tab } from '@/lib/state';
 import { useApp } from './AppProvider';
 
 const NAV: { tab: Tab; icon: string; label: string }[] = [
+  { tab: 'ride', icon: '🚴', label: 'Ride' },
   { tab: 'home', icon: '🏠', label: 'Home' },
   { tab: 'workout', icon: '🏋️', label: 'Workout' },
   { tab: 'nutrition', icon: '📅', label: 'Diet & Cal' },

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { last } from '@/lib/fitsync';
+import { last } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 export default function MultiSportPanel() {

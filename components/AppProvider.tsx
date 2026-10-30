@@ -1,9 +1,9 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { initialState, type AppState, type StudioTemplate, type Tab, type WorkoutSub } from '@/lib/fitsync';
+import { initialState, type AppState, type StudioTemplate, type Tab, type WorkoutSub } from '@/lib/state';
 import { toJpegDataUrl } from '@/lib/image';
-import { loadState, saveState } from '@/lib/persist';
+import { loadState, saveRides, saveState } from '@/lib/persist';
 
 export type CameraMode = 'studio' | 'food';
 
@@ -43,15 +43,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadState()
       .then(set)
-      .catch((e) => console.warn('FitSync: saved data unavailable, using defaults', e))
+      .catch((e) => console.warn('Kinetz: saved data unavailable, using defaults', e))
       .finally(() => setLoaded(true));
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    const t = setTimeout(() => saveState(s).catch((e) => console.warn('FitSync: save failed', e)), 300);
+    const t = setTimeout(() => saveState(s).catch((e) => console.warn('Kinetz: save failed', e)), 300);
     return () => clearTimeout(t);
   }, [s, loaded]);
+
+  // Not debounced: a finished ride must hit disk even if the app is closed right after.
+  useEffect(() => {
+    if (loaded) saveRides(s.rides).catch((e) => console.warn('Kinetz: saving rides failed', e));
+  }, [s.rides, loaded]);
 
   useEffect(() => {
     const cl = document.documentElement.classList;
@@ -96,7 +101,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       switchTab('nutrition');
       toast('AI Vision sedang menganalisis foto makanan...');
       try {
-        const res = await fetch('/api/analyze-food', {
+        // The Android build is a static export with no server; it calls the deployed web app instead.
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE ?? ''}/api/analyze-food`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: toJpegDataUrl(src) }),

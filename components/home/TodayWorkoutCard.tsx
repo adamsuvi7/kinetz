@@ -1,6 +1,6 @@
 'use client';
 
-import { SPLIT_DESC, gymCompletedSets, gymPrCount } from '@/lib/fitsync';
+import { SPLIT_DESC, gymCompletedSets, gymPrCount } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 export default function TodayWorkoutCard() {

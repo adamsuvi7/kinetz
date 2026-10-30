@@ -8,43 +8,11 @@ import {
   gymPrCount,
   gymTotalVolume,
   last,
-} from './fitsync';
+} from './state';
+
+import { drawImageCover, drawRoundRectPath } from './draw';
 
 type Metric = { label: string; value: string; highlight: boolean };
-
-export function drawRoundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-// Center-crop (object-fit: cover) so photos never stretch.
-export function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number) {
-  const imgRatio = img.width / img.height;
-  const canvasRatio = w / h;
-  let sx, sy, sw, sh;
-  if (imgRatio > canvasRatio) {
-    sh = img.height;
-    sw = img.height * canvasRatio;
-    sx = (img.width - sw) / 2;
-    sy = 0;
-  } else {
-    sw = img.width;
-    sh = img.width / canvasRatio;
-    sx = 0;
-    sy = (img.height - sh) / 2;
-  }
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
-}
 
 export function renderRunRouteCanvas(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d');
@@ -206,11 +174,11 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
   ctx.fill();
   ctx.fillStyle = '#0E110F';
   ctx.font = '800 25px "Space Grotesk", sans-serif';
-  ctx.fillText('⚡ FITSYNC PRO', 112, 144);
+  ctx.fillText('⚡ KINETZ', 112, 144);
 
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.font = '600 24px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(`IF ${s.fastingProtocol} • Bukittinggi`, 336, 143);
+  ctx.fillText(`IF ${s.fastingProtocol}`, 336, 143);
 
   // Optional KOM / Trophy Badge on Top Right
   if (showBadge) {
@@ -256,7 +224,7 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
   } else if (template === 'run') {
     const run = s.runData;
     titleText = run.title.toUpperCase();
-    subText = 'STRAVA GPS VERIFIED ROUTE • +118M ELEV';
+    subText = `+${run.elevationM}M ELEVATION`;
     metrics4 = [
       { label: 'DISTANCE', value: `${run.distanceKm.toFixed(2)} KM`, highlight: true },
       { label: 'AVG PACE', value: `${computePaceString(run.distanceKm, run.movingSeconds)} /KM`, highlight: false },
@@ -295,7 +263,8 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
     metrics4 = [
       { label: 'ACTIVE DURATION', value: `${s.multiDurationMin} MIN`, highlight: true },
       { label: 'PERFORMANCE', value: sp.unit.toUpperCase(), highlight: false },
-      { label: 'METS BURNED', value: '540 KCAL', highlight: true },
+      // Kalori = MET * BB_kg * Durasi_jam, same as the Multi-Sport panel
+      { label: 'METS BURNED', value: `${Math.round(sp.met * (last(s.bodyHistory.weight) || 72) * (s.multiDurationMin / 60))} KCAL`, highlight: true },
       { label: 'HEART RATE', value: `${s.heartRate} BPM`, highlight: false },
     ];
     ctx.save();
@@ -319,11 +288,14 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
     ctx.fillText(m.title.toUpperCase(), w / 2, h * 0.42);
     ctx.restore();
   } else {
+    const waist = s.bodyHistory.waist;
+    const waistDelta = last(waist) - waist[0];
+    const consistency = Math.round(s.weeklyConsistency.reduce((a, d) => a + d.pct, 0) / s.weeklyConsistency.length);
     metrics4 = [
       { label: 'CURRENT WEIGHT', value: `${last(s.bodyHistory.weight)} KG`, highlight: false },
-      { label: 'WAIST DELTA', value: '-3.2 CM 🔥', highlight: true },
-      { label: 'WAIST SIZE', value: `${last(s.bodyHistory.waist)} CM`, highlight: false },
-      { label: 'CONSISTENCY', value: '94% STREAK', highlight: true },
+      { label: 'WAIST DELTA', value: `${waistDelta > 0 ? '+' : ''}${waistDelta.toFixed(1)} CM`, highlight: true },
+      { label: 'WAIST SIZE', value: `${last(waist)} CM`, highlight: false },
+      { label: 'CONSISTENCY', value: `${consistency}% WEEK`, highlight: true },
     ];
     ctx.save();
     ctx.textAlign = 'center';
@@ -340,6 +312,6 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
   ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
   ctx.font = '600 22px "Plus Jakarta Sans", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('TRACKED WITH FITSYNC • HYBRID GYM, GPS & AI NUTRITION', w / 2, h - 48);
+  ctx.fillText('KINETZ', w / 2, h - 48);
   ctx.textAlign = 'left';
 }

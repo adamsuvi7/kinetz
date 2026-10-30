@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FITSYNC — Hybrid Gym, Strava GPS, AI Nutrition & Analytics",
+  title: "Kinetz — GPS Ride, Gym & Nutrition Tracker",
 };
 
 export const viewport: Viewport = {
