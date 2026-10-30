@@ -15,11 +15,21 @@ AI food scan needs a Gemini key: copy `.env.example` to `.env.local` and set `GE
 
 ## Android
 
-Every push to `main` builds a debug APK in GitHub Actions (**Actions → Android APK → Artifacts → kinetz-debug-apk**).
-Install it on the phone (allow "install unknown apps").
+Every push to `main` builds the APK in GitHub Actions and publishes it to the rolling
+[`ota` release](https://github.com/adamsuvi7/kinetz/releases/tag/ota): `kinetz.apk`, `web.zip`, `manifest.json`.
 
-- Rides keep recording with the screen locked (foreground service, persistent "Kinetz merekam ride" notification).
-- The app is a static export, so the AI food scan calls the deployed web app: set the repository variable
-  `KINETZ_API_BASE` (for example `https://your-app.vercel.app`) and deploy the web app with `GEMINI_API_KEY`.
+**Updates without reinstalling**
+- *Web updates (UI, story, logic)*: the app checks `manifest.json` on launch, downloads `web.zip` in the background
+  and switches to it the next time Kinetz is reopened (`lib/updater.ts`, self-hosted @capgo/capacitor-updater).
+- *Native updates (plugins, permissions, icon)*: bump `versionName` in `android/app/build.gradle`. The app then shows
+  a banner to download the new APK, which installs over the old one (same signing key), keeping all rides.
+
+**Signing (one-time setup)**: add two repository secrets (Settings → Secrets and variables → Actions):
+`KINETZ_KEYSTORE_B64` (base64 of the PKCS12 keystore) and `KINETZ_KEYSTORE_PASSWORD`. Without them CI builds a
+debug APK that must be uninstalled before each update. Back up the keystore: losing it means users must reinstall.
+
+- Rides keep recording with the screen locked (foreground service, "Kinetz merekam ride" notification).
+  Location permission must be *precise* ("Gunakan lokasi akurat"); approximate location is rejected by the plugin.
+- AI food scan in the app calls the deployed web app: set repository variable `KINETZ_API_BASE`.
 
 Local build instead of CI: `npm run build:mobile`, then open `android/` in Android Studio (JDK 21).

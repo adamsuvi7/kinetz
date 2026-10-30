@@ -1,16 +1,19 @@
 'use client';
 
 import { formatKm, formatRideDate, rideStats, type Ride } from '@/lib/ride';
-import { COLORS, STAT_LABELS, type Layer, type StatKey, type Swatch, type TextLayer } from '@/lib/story';
+import { COLORS, STAT_LABELS, sentenceCase, type Layer, type StatKey, type Swatch, type TextLayer } from '@/lib/story';
 
 const LAYER_NAMES: Record<string, string> = {
   title: 'Judul', date: 'Tanggal', route: 'Rute GPS', stats: 'Statistik', hero: 'Angka utama', brand: 'Logo',
+  badge: 'Badge aktivitas', stripes: 'Garis dekor', shade: 'Bayangan kiri',
 };
 const SIZE_RANGE: Record<Layer['kind'], [number, number, number]> = {
   text: [18, 160, 2],
   route: [240, 1000, 10],
   stats: [0.6, 2.2, 0.05],
   brand: [16, 80, 1],
+  badge: [0.6, 1.6, 0.05],
+  decor: [0.5, 2, 0.05],
 };
 const MAX_STATS = 6;
 
@@ -37,7 +40,7 @@ function Segmented<T extends string>({ value, options, onPick }: { value: T; opt
   );
 }
 
-const layerName = (l: Layer) => LAYER_NAMES[l.id] ?? (l.kind === 'text' ? l.text || 'Teks' : l.id);
+const layerName = (l: Layer) => LAYER_NAMES[l.id] ?? (l.kind === 'text' ? l.text.split('\n')[0] || 'Teks' : l.id);
 
 export default function RideStoryEditor({ layers, onChange, selectedId, onSelect, rides, ride, onPickRide, onReset }: Props) {
   const selected = layers.find((l) => l.id === selectedId) ?? null;
@@ -46,7 +49,7 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
   const addText = (preset: 'event' | 'text') => {
     const layer: TextLayer =
       preset === 'event'
-        ? { id: `t${Date.now()}`, kind: 'text', text: 'CRITICAL MASS', x: 540, y: 480, size: 40, style: 'pill', color: 'lime', align: 'center', bold: true, visible: true }
+        ? { id: `t${Date.now()}`, kind: 'text', text: 'CRITICAL MASS', x: 540, y: 480, size: 40, style: 'pill', color: 'green', align: 'center', bold: true, visible: true }
         : { id: `t${Date.now()}`, kind: 'text', text: 'Teks baru', x: 540, y: 1080, size: 48, style: 'plain', color: 'white', align: 'center', bold: true, visible: true };
     onChange([...layers, layer]);
     onSelect(layer.id);
@@ -118,15 +121,36 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
           </div>
 
           {selected.kind === 'text' && (
-            <input
+            <textarea
               value={selected.text}
               onChange={(e) => patch(selected.id, { text: e.target.value })}
-              placeholder={selected.bind === 'name' ? 'Kosongkan = nama ride' : selected.bind === 'date' ? 'Kosongkan = tanggal ride' : 'Tulis teks'}
-              maxLength={60}
-              className="w-full surface-card px-3 py-2 rounded-xl text-xs font-bold outline-none"
+              placeholder={selected.bind === 'name' ? 'Kosongkan = nama ride' : selected.bind === 'date' ? 'Kosongkan = tanggal ride' : 'Tulis teks (Enter = baris baru)'}
+              maxLength={80}
+              rows={selected.text.includes('\n') ? 2 : 1}
+              className="w-full surface-card px-3 py-2 rounded-xl text-xs font-bold outline-none resize-none"
             />
           )}
 
+          {selected.kind === 'badge' && (
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={selected.text}
+                onChange={(e) => patch(selected.id, { text: e.target.value })}
+                maxLength={20}
+                aria-label="Judul badge"
+                className="surface-card px-3 py-2 rounded-xl text-xs font-bold outline-none"
+              />
+              <input
+                value={selected.sub}
+                onChange={(e) => patch(selected.id, { sub: e.target.value.toUpperCase() })}
+                maxLength={16}
+                aria-label="Keterangan badge"
+                className="surface-card px-3 py-2 rounded-xl text-xs font-bold outline-none"
+              />
+            </div>
+          )}
+
+          {!(selected.kind === 'decor' && selected.variant === 'shade') && (
           <div className="flex items-center gap-2">
             <span className="text-[11px] opacity-75 w-12">Ukuran</span>
             <input
@@ -139,7 +163,9 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
               className="flex-1 accent-[#C8F526]"
             />
           </div>
+          )}
 
+          {!(selected.kind === 'decor' && selected.variant === 'shade') && (
           <div className="flex items-center gap-2">
             <span className="text-[11px] opacity-75 w-12">Warna</span>
             {(Object.keys(COLORS) as Swatch[]).map((c) => (
@@ -152,6 +178,7 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
               />
             ))}
           </div>
+          )}
 
           {selected.kind === 'text' && (
             <>
@@ -161,12 +188,20 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] opacity-75 w-12">Rata</span>
-                <Segmented value={selected.align} options={[['left', 'Kiri'], ['center', 'Tengah']]} onPick={(v) => patch(selected.id, { align: v, x: v === 'center' ? 540 : 96 })} />
+                <Segmented
+                  value={selected.align}
+                  options={[['left', 'Kiri'], ['center', 'Tengah'], ['right', 'Kanan']]}
+                  onPick={(v) => patch(selected.id, { align: v, x: v === 'center' ? 540 : v === 'right' ? 984 : 96 })}
+                />
                 <label className="flex items-center gap-1.5 text-[11px] cursor-pointer ml-auto">
                   <input type="checkbox" checked={selected.bold} onChange={(e) => patch(selected.id, { bold: e.target.checked })} className="accent-[#C8F526]" />
                   Tebal
                 </label>
               </div>
+              <label className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                <input type="checkbox" checked={!!selected.underline} onChange={(e) => patch(selected.id, { underline: e.target.checked })} className="accent-[#C8F526]" />
+                Garis aksen di bawah teks
+              </label>
             </>
           )}
 
@@ -181,13 +216,13 @@ export default function RideStoryEditor({ layers, onChange, selectedId, onSelect
             <>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] opacity-75 w-12">Susunan</span>
-                <Segmented value={selected.layout} options={[['grid', 'Grid'], ['row', 'Baris'], ['column', 'Kolom']]} onPick={(v) => patch(selected.id, { layout: v })} />
+                <Segmented value={selected.layout} options={[['icons', 'Ikon'], ['grid', 'Grid'], ['row', 'Baris'], ['column', 'Kolom']]} onPick={(v) => patch(selected.id, { layout: v })} />
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {(Object.keys(STAT_LABELS) as StatKey[]).map((k) => (
                   <label key={k} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
                     <input type="checkbox" checked={selected.stats.includes(k)} onChange={() => toggleStat(k)} className="accent-[#C8F526]" />
-                    {STAT_LABELS[k].toLowerCase().replace(/^./, (c) => c.toUpperCase())}
+                    {sentenceCase(STAT_LABELS[k])}
                   </label>
                 ))}
               </div>

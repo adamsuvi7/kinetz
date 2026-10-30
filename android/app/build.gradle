@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+// CI passes BUILD_NUMBER (GitHub run number) and the signing keystore; see .github/workflows/android.yml.
+// versionName is the *native* version: bump it whenever plugins, permissions or resources change, because
+// OTA web updates (lib/updater.ts) only install on an APK with the same versionName.
+def keystorePath = System.getenv("KINETZ_KEYSTORE_PATH")
+
 android {
     namespace = "com.kinetz.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +12,8 @@ android {
         applicationId "com.kinetz.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode Integer.parseInt(System.getenv("BUILD_NUMBER") ?: "1")
+        versionName "2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +21,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("KINETZ_KEYSTORE_PASSWORD")
+                keyAlias "kinetz"
+                keyPassword System.getenv("KINETZ_KEYSTORE_PASSWORD")
+                storeType "pkcs12"
+            }
+        }
+    }
     buildTypes {
         release {
+            // Same key for every build, so a new APK installs over the old one and keeps the rides.
+            if (keystorePath) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

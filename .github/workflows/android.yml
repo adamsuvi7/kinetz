@@ -5,9 +5,18 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Publishing to the rolling "ota" release needs write access; one build at a time so uploads never interleave.
+permissions:
+  contents: write
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
@@ -24,17 +33,52 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      # Static export + cap sync. Set repo variable KINETZ_API_BASE (e.g. https://kinetz.vercel.app)
-      # so the AI food scan in the app can reach the deployed /api/analyze-food.
+      # Static export + cap sync. NEXT_PUBLIC_BUILD lets the app compare itself with the OTA manifest.
+      # Set repo variable KINETZ_API_BASE (e.g. https://kinetz.vercel.app) for the AI food scan.
       - run: npm run build:mobile
         env:
+          NEXT_PUBLIC_BUILD: ${{ github.run_number }}
           NEXT_PUBLIC_API_BASE: ${{ vars.KINETZ_API_BASE }}
 
-      - name: Build debug APK
+      # Release signing with a fixed key (repo secrets) so new APKs install over old ones and keep data.
+      # Without the secrets the build falls back to a debug APK, which needs an uninstall to update.
+      - name: Build APK
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+        env:
+          KEYSTORE_B64: ${{ secrets.KINETZ_KEYSTORE_B64 }}
+          KINETZ_KEYSTORE_PASSWORD: ${{ secrets.KINETZ_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/kinetz.p12"
+            KINETZ_KEYSTORE_PATH="$RUNNER_TEMP/kinetz.p12" ./gradlew assembleRelease --no-daemon
+            cp app/build/outputs/apk/release/app-release.apk ../kinetz.apk
+          else
+            echo "::warning::KINETZ_KEYSTORE_B64 secret not set; building a debug APK (cannot update in place)."
+            ./gradlew assembleDebug --no-daemon
+            cp app/build/outputs/apk/debug/app-debug.apk ../kinetz.apk
+          fi
+
+      - name: Package OTA bundle
+        run: |
+          (cd out && zip -qr ../web.zip .)
+          NATIVE=$(grep -oP 'versionName "\K[^"]+' android/app/build.gradle)
+          URL="https://github.com/${{ github.repository }}/releases/download/ota/web.zip"
+          echo "{\"build\":$BUILD_NUMBER,\"native\":\"$NATIVE\",\"url\":\"$URL\"}" > manifest.json
+          cat manifest.json
+
+      # Rolling release: the app reads manifest.json from here; people download the latest APK from here.
+      # The manifest goes up last so it never points at a bundle that isn't uploaded yet.
+      - name: Publish to "ota" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view ota >/dev/null 2>&1 || gh release create ota --title "Kinetz terbaru" --notes "Dibuat otomatis oleh CI." --latest
+          gh release upload ota kinetz.apk web.zip --clobber
+          gh release upload ota manifest.json --clobber
+          gh release edit ota --notes "Build $BUILD_NUMBER dari ${GITHUB_SHA::7}. Pasang kinetz.apk sekali; update berikutnya otomatis lewat aplikasi."
 
       - uses: actions/upload-artifact@v4
         with:
-          name: kinetz-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: kinetz-apk
+          path: kinetz.apk

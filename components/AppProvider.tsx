@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { initialState, type AppState, type StudioTemplate, type Tab, type WorkoutSub } from '@/lib/state';
 import { toJpegDataUrl } from '@/lib/image';
 import { loadState, saveRides, saveState } from '@/lib/persist';
+import { checkForUpdate } from '@/lib/updater';
 
 export type CameraMode = 'studio' | 'food';
 
@@ -16,6 +17,8 @@ type AppCtx = {
   exportToStudio: (tpl: StudioTemplate) => void;
   setBgImage: (img: HTMLImageElement, msg: string) => void;
   analyzeFood: (src: HTMLImageElement | HTMLCanvasElement) => Promise<void>;
+  /** A newer APK is required (native change) — build number, else null. */
+  nativeUpdate: number | null;
   camera: CameraMode | null;
   openCamera: (mode?: CameraMode) => void;
   closeCamera: () => void;
@@ -39,6 +42,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [camera, setCamera] = useState<CameraMode | null>(null);
   const [beaconOpen, setBeaconOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [nativeUpdate, setNativeUpdate] = useState<number | null>(null);
 
   useEffect(() => {
     loadState()
@@ -70,6 +74,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastVisible(false), 2400);
   }, []);
+
+  useEffect(() => {
+    checkForUpdate()
+      .then((u) => {
+        if (u.kind === 'downloaded') toast(`Update build ${u.build} siap, aktif saat Kinetz dibuka ulang`);
+        if (u.kind === 'native') setNativeUpdate(u.build);
+      })
+      .catch((e) => console.warn('Kinetz: update check failed', e));
+  }, [toast]);
 
   const switchTab = useCallback((tab: Tab) => {
     set((p) => ({ ...p, activeTab: tab }));
@@ -134,7 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider
-      value={{ s, set, toast, switchTab, switchWorkoutSub, exportToStudio, setBgImage, analyzeFood, camera, openCamera, closeCamera, beaconOpen, setBeaconOpen }}
+      value={{ s, set, toast, switchTab, switchWorkoutSub, exportToStudio, setBgImage, analyzeFood, camera, openCamera, closeCamera, beaconOpen, setBeaconOpen, nativeUpdate }}
     >
       {/* Mount after IndexedDB load so tab-local inputs initialise from saved data, not defaults. */}
       {loaded && children}

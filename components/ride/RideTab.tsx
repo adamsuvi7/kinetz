@@ -7,10 +7,12 @@ import {
   type Ride, type Segments,
 } from '@/lib/ride';
 import { drawRoute } from '@/lib/story';
+import { BUILD } from '@/lib/updater';
 import { useApp } from '../AppProvider';
 
 const GPS_ERROR_TEXT: Record<GpsError, string> = {
-  denied: 'Izin lokasi ditolak. Aktifkan izin lokasi untuk Kinetz.',
+  denied: 'Izin lokasi belum lengkap. Buka Setelan → Izin → Lokasi, pilih "Izinkan saat aplikasi digunakan" dan aktifkan "Gunakan lokasi akurat".',
+  disabled: 'Lokasi (GPS) di HP sedang mati. Nyalakan Lokasi dari panel notifikasi, lalu tekan Coba lagi.',
   unavailable: 'Sinyal GPS tidak tersedia. Coba di area terbuka.',
   insecure: 'GPS browser hanya jalan lewat HTTPS atau localhost.',
 };
@@ -86,9 +88,18 @@ export default function RideTab() {
   const { s, set, toast, exportToStudio } = useApp();
   const [acc, setAcc] = useState<number | null>(null);
   const [gpsError, setGpsError] = useState<GpsError | null>(null);
+  const [gpsAttempt, setGpsAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const active = s.activeRide;
   const status = active?.status ?? 'idle';
+
+  // Coming back from Android settings (permission or Location switched on): try again without extra taps.
+  useEffect(() => {
+    if (!gpsError || gpsError === 'insecure') return;
+    const onVisible = () => document.visibilityState === 'visible' && setGpsAttempt((n) => n + 1);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [gpsError]);
 
   // GPS stream runs whenever a ride is recording, also after an app restart mid-ride.
   useEffect(() => {
@@ -116,7 +127,7 @@ export default function RideTab() {
       cancelled = true;
       stop?.();
     };
-  }, [status, set]);
+  }, [status, set, gpsAttempt]);
 
   useEffect(() => {
     if (status !== 'recording') return;
@@ -202,12 +213,19 @@ export default function RideTab() {
         </div>
 
         {gpsError && (
-          <div className="mt-3 surface-card-alt p-3 text-[11px] flex items-center justify-between gap-2">
-            <span>{GPS_ERROR_TEXT[gpsError]}</span>
-            {gpsError === 'denied' && isNative() && (
-              <button onClick={() => openLocationSettings()} className="px-2.5 py-1 rounded-lg lime-btn shrink-0">
-                Buka Setelan
-              </button>
+          <div className="mt-3 surface-card-alt p-3 text-[11px] space-y-2">
+            <p>{GPS_ERROR_TEXT[gpsError]}</p>
+            {status === 'recording' && gpsError !== 'insecure' && (
+              <div className="flex gap-2">
+                {gpsError === 'denied' && isNative() && (
+                  <button onClick={() => openLocationSettings()} className="px-2.5 py-1 rounded-lg lime-btn">
+                    Buka Setelan
+                  </button>
+                )}
+                <button onClick={() => setGpsAttempt((n) => n + 1)} className="px-2.5 py-1 rounded-lg surface-card font-bold">
+                  Coba lagi
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -263,6 +281,7 @@ export default function RideTab() {
           {isNative()
             ? 'Rekaman tetap berjalan saat layar terkunci; notifikasi "Kinetz merekam ride" tampil selama ride aktif.'
             : 'Di browser, biarkan layar tetap menyala selama ride. Pakai aplikasi Android Kinetz untuk merekam dengan layar terkunci.'}
+          {BUILD > 0 && ` · Build ${BUILD}`}
         </p>
       </div>
 

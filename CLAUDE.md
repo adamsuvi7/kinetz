@@ -45,4 +45,7 @@ Pertahankan sistem dua tema yang dapat diganti secara instan:
 - **GPS**: `lib/gps.ts` (Android: `@capacitor-community/background-geolocation`, tetap merekam saat layar terkunci; web: `watchPosition` + Wake Lock). Matematika ride murni di `lib/ride.ts`, diuji `npm test`.
 - **Story editor**: `lib/story.ts` (layer bisa diseret: judul, tanggal, rute GPS, statistik, logo, teks/label event). Isi story hanya data nyata dari ride; jangan ada angka, lokasi, atau klaim karangan.
 - **Data**: IndexedDB (`lib/persist.ts`); ride tersimpan di key terpisah.
-- **Android**: `npm run build:mobile` (static export ke `out/`, route API dilewati) lalu `cap sync`. APK dibangun di GitHub Actions (`.github/workflows/android.yml`).
+- **Android**: `npm run build:mobile` (static export ke `out/`, route API dilewati) lalu `cap sync`. APK + bundle OTA dibangun & dipublikasikan GitHub Actions ke rilis `ota` (`.github/workflows/android.yml`).
+- **Update OTA**: `lib/updater.ts` (self-hosted, tanpa cloud Capgo). Perubahan native (plugin/izin/ikon) wajib menaikkan `versionName` di `android/app/build.gradle`.
+- **Logo**: path vektor K di `lib/logo.ts` (dipakai header, story, ikon Android `ic_launcher_foreground_k.xml`, `app/icon.svg`). Hijau `#7EEA3D`, abu `#323E3A`.
+- **Template story default**: "Sorotan" (meniru poster referensi Kinetz).

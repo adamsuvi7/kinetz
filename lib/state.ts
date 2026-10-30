@@ -206,7 +206,7 @@ export const initialState: AppState = {
     showBadge: false,
     rideId: null,
     rideLayers: DEFAULT_LAYERS,
-    rideTemplate: 'klasik',
+    rideTemplate: 'sorotan',
   },
 };
 

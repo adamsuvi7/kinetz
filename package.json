@@ -16,6 +16,7 @@
     "@capacitor/core": "8.5.3",
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/share": "8.0.3",
+    "@capgo/capacitor-updater": "8.53.0",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18"

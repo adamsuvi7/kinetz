@@ -5,7 +5,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { BackgroundGeolocationPlugin } from '@capacitor-community/background-geolocation';
 import type { TrackPoint } from './ride';
 
-export type GpsError = 'denied' | 'unavailable' | 'insecure';
+export type GpsError = 'denied' | 'disabled' | 'unavailable' | 'insecure';
 
 const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
 
@@ -24,7 +24,9 @@ export async function startGps(onFix: (p: TrackPoint) => void, onError: (e: GpsE
         distanceFilter: 3,
       },
       (loc, err) => {
-        if (err) return onError(err.code === 'NOT_AUTHORIZED' ? 'denied' : 'unavailable');
+        // The plugin reports both "permission missing" and "location switched off" as NOT_AUTHORIZED;
+        // only the message tells them apart. It also needs *precise* location: "approximate" counts as denied.
+        if (err) return onError(err.code !== 'NOT_AUTHORIZED' ? 'unavailable' : /disabled/i.test(err.message) ? 'disabled' : 'denied');
         if (loc) onFix({ lat: loc.latitude, lon: loc.longitude, t: loc.time ?? Date.now(), alt: loc.altitude, acc: loc.accuracy });
       },
     );

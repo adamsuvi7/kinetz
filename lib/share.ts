@@ -6,6 +6,13 @@ import { isNative } from './gps';
 
 export type ExportResult = 'shared' | 'downloaded' | 'cancelled';
 
+/** Opens a link outside the app. In the Android WebView window.open() does nothing; a top-level
+ *  navigation to another host is handed to the system (browser, WhatsApp, download manager). */
+export function openExternal(url: string) {
+  if (isNative()) window.location.href = url;
+  else window.open(url, '_blank', 'noopener');
+}
+
 async function shareNative(canvas: HTMLCanvasElement, filename: string): Promise<ExportResult> {
   const data = canvas.toDataURL('image/png').split(',')[1];
   const { uri } = await Filesystem.writeFile({ path: filename, data, directory: Directory.Cache });

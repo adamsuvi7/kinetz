@@ -1,5 +1,6 @@
 'use client';
 
+import { openExternal } from '@/lib/share';
 import { useApp } from './AppProvider';
 
 export default function BeaconModal() {
@@ -9,7 +10,7 @@ export default function BeaconModal() {
     const text = encodeURIComponent(
       `🛰️ *KINETZ SAFELINK LIVE BEACON*\nSaya sedang berolahraga sekarang.\n📍 Lokasi GPS: -0.3051, 100.3692\n💚 Detak Jantung: ${s.heartRate} bpm\n⏱️ Status Diet: IF ${s.fastingProtocol}\n🔋 Baterai: 84%`,
     );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
+    openExternal(`https://wa.me/?text=${text}`);
     setBeaconOpen(false);
   };
 

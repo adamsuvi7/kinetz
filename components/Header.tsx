@@ -1,9 +1,12 @@
 'use client';
 
+import { openExternal } from '@/lib/share';
+import { APK_URL } from '@/lib/updater';
 import { useApp } from './AppProvider';
+import KinetzMark from './KinetzLogo';
 
 export default function Header() {
-  const { s, set, toast, openCamera, setBeaconOpen } = useApp();
+  const { s, set, toast, openCamera, setBeaconOpen, nativeUpdate } = useApp();
 
   const toggleBleHr = () => {
     const hr = s.heartRate === 142 ? 156 : 142;
@@ -12,13 +15,12 @@ export default function Header() {
   };
 
   return (
+    <>
     <header className="flex items-center justify-between py-2 mb-3">
       <div className="flex items-center gap-3">
         <div className="relative">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#438257] to-[#C8F526] p-0.5">
-            <div className="w-full h-full rounded-full bg-[#161B18] flex items-center justify-center font-display font-bold text-sm text-[#C8F526]">
-              AS
-            </div>
+          <div className="w-11 h-11 rounded-xl bg-black flex items-center justify-center">
+            <KinetzMark className="w-7 h-auto" />
           </div>
           <span
             className="w-3 h-3 rounded-full bg-[#C8F526] border-2 border-[#0E110F] absolute -bottom-0.5 -right-0.5"
@@ -35,7 +37,7 @@ export default function Header() {
               ♥ BLE {s.bleBadgeHr} bpm
             </span>
           </div>
-          <h1 className="text-base font-extrabold tracking-tight leading-tight">Hi, Athlete Kinetz</h1>
+          <h1 className="font-display text-base font-bold tracking-[0.28em] leading-tight">KINETZ</h1>
         </div>
       </div>
 
@@ -62,5 +64,14 @@ export default function Header() {
         </button>
       </div>
     </header>
+    {nativeUpdate && (
+      <button
+        onClick={() => openExternal(APK_URL)}
+        className="w-full mb-3 px-3 py-2 rounded-xl lime-btn text-[11px] text-left"
+      >
+        Versi baru Kinetz (build {nativeUpdate}) butuh pasang APK sekali. Ketuk untuk unduh, lalu pasang di atas versi ini.
+      </button>
+    )}
+    </>
   );
 }
