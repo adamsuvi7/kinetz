@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { last } from '@/lib/state';
+import { currentWeight } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 export default function MultiSportPanel() {
   const { s, set, exportToStudio } = useApp();
   const [targetBurn, setTargetBurn] = useState('450');
-  const bw = last(s.bodyHistory.weight) || 72;
+  const bw = currentWeight(s);
   const sp = s.multiSports[s.selectedMultiSportIndex];
 
   // Kalori = MET * BB_kg * Durasi_jam

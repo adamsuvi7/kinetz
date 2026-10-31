@@ -29,7 +29,6 @@ export default function Header() {
         </div>
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-medium opacity-75">Keep Moving Today! 💪</span>
             <span
               onClick={toggleBleHr}
               className="cursor-pointer text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30"

@@ -5,13 +5,11 @@ import { useApp } from '../AppProvider';
 import GymPanel from './GymPanel';
 import RunPanel from './RunPanel';
 import MultiSportPanel from './MultiSportPanel';
-import KomPanel from './KomPanel';
 
 const SUBS: { sub: WorkoutSub; label: string }[] = [
   { sub: 'gym', label: '🏋️ Gym' },
   { sub: 'run', label: '🏃 Lari' },
   { sub: 'multi', label: '🚴 Multi' },
-  { sub: 'kom', label: '👑 KOM' },
 ];
 
 export default function WorkoutTab() {
@@ -21,7 +19,7 @@ export default function WorkoutTab() {
   return (
     <section className={`space-y-4${s.activeTab === 'workout' ? '' : ' hidden'}`}>
       {/* Mode Selector Sub-Tabs */}
-      <div className="grid grid-cols-4 gap-1.5 p-1 surface-card-alt rounded-2xl">
+      <div className="grid grid-cols-3 gap-1.5 p-1 surface-card-alt rounded-2xl">
         {SUBS.map(({ sub, label }) => (
           <button
             key={sub}
@@ -33,17 +31,14 @@ export default function WorkoutTab() {
         ))}
       </div>
 
-      <div className={`space-y-4${show('gym')}`}>
+      <div className={`tab-grid${show('gym')}`}>
         <GymPanel />
       </div>
-      <div className={`space-y-4${show('run')}`}>
+      <div className={`tab-grid${show('run')}`}>
         <RunPanel />
       </div>
-      <div className={`space-y-4${show('multi')}`}>
+      <div className={`tab-grid${show('multi')}`}>
         <MultiSportPanel />
-      </div>
-      <div className={`space-y-4${show('kom')}`}>
-        <KomPanel />
       </div>
     </section>
   );

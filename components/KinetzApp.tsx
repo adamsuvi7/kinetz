@@ -9,7 +9,6 @@ import RideTab from './ride/RideTab';
 import HomeTab from './home/HomeTab';
 import WorkoutTab from './workout/WorkoutTab';
 import NutritionTab from './nutrition/NutritionTab';
-import AnalyticsTab from './analytics/AnalyticsTab';
 import StudioTab from './studio/StudioTab';
 
 export default function KinetzApp() {
@@ -22,7 +21,6 @@ export default function KinetzApp() {
         <HomeTab />
         <WorkoutTab />
         <NutritionTab />
-        <AnalyticsTab />
         <StudioTab />
       </div>
       <BottomDock />

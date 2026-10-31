@@ -8,6 +8,9 @@ import {
   gymPrCount,
   gymTotalVolume,
   last,
+  activeDays,
+  currentWeight,
+  dietToday,
 } from './state';
 
 import { drawImageCover, drawRoundRectPath } from './draw';
@@ -202,7 +205,7 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
     metrics4 = [
       { label: 'TOTAL VOLUME', value: `${formatNumberID(gymTotalVolume(s.gymSets))} KG`, highlight: true },
       { label: 'COMPLETED SETS', value: `${gymCompletedSets(s.gymSets)} SETS`, highlight: false },
-      { label: 'PERSONAL RECORDS', value: `${gymPrCount(s.gymSets)} NEW PR 🔥`, highlight: true },
+      { label: 'PERSONAL RECORDS', value: `${gymPrCount(s.gymSets, s.gymBests)} NEW PR 🔥`, highlight: true },
       { label: 'ACTIVE CALORIES', value: `${s.activeCalories} KCAL`, highlight: false },
     ];
 
@@ -264,7 +267,7 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
       { label: 'ACTIVE DURATION', value: `${s.multiDurationMin} MIN`, highlight: true },
       { label: 'PERFORMANCE', value: sp.unit.toUpperCase(), highlight: false },
       // Kalori = MET * BB_kg * Durasi_jam, same as the Multi-Sport panel
-      { label: 'METS BURNED', value: `${Math.round(sp.met * (last(s.bodyHistory.weight) || 72) * (s.multiDurationMin / 60))} KCAL`, highlight: true },
+      { label: 'METS BURNED', value: `${Math.round(sp.met * currentWeight(s) * (s.multiDurationMin / 60))} KCAL`, highlight: true },
       { label: 'HEART RATE', value: `${s.heartRate} BPM`, highlight: false },
     ];
     ctx.save();
@@ -279,7 +282,7 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
       { label: 'MEAL CALORIES', value: `${Math.round(m.baseCal * m.scale)} KCAL`, highlight: true },
       { label: 'HIGH PROTEIN', value: `${Math.round(m.baseProt * m.scale)}G PROT`, highlight: true },
       { label: 'FASTING WINDOW', value: `IF ${s.fastingProtocol}`, highlight: false },
-      { label: 'DAILY TARGET', value: `${s.consumedProtein}/${s.targetProtein}G`, highlight: false },
+      { label: 'DAILY TARGET', value: `${dietToday(s).protein}/${s.targetProtein}G`, highlight: false },
     ];
     ctx.save();
     ctx.textAlign = 'center';
@@ -288,14 +291,13 @@ export function renderStudioCanvas(canvas: HTMLCanvasElement, s: AppState) {
     ctx.fillText(m.title.toUpperCase(), w / 2, h * 0.42);
     ctx.restore();
   } else {
-    const waist = s.bodyHistory.waist;
-    const waistDelta = last(waist) - waist[0];
-    const consistency = Math.round(s.weeklyConsistency.reduce((a, d) => a + d.pct, 0) / s.weeklyConsistency.length);
+    const waists = s.bodyLog.map((e) => e.waist).filter((v) => v > 0);
+    const waistDelta = waists.length >= 2 ? last(waists) - waists[0] : null;
     metrics4 = [
-      { label: 'CURRENT WEIGHT', value: `${last(s.bodyHistory.weight)} KG`, highlight: false },
-      { label: 'WAIST DELTA', value: `${waistDelta > 0 ? '+' : ''}${waistDelta.toFixed(1)} CM`, highlight: true },
-      { label: 'WAIST SIZE', value: `${last(waist)} CM`, highlight: false },
-      { label: 'CONSISTENCY', value: `${consistency}% WEEK`, highlight: true },
+      { label: 'CURRENT WEIGHT', value: `${currentWeight(s).toFixed(1)} KG`, highlight: false },
+      { label: 'WAIST DELTA', value: waistDelta == null ? '–' : `${waistDelta > 0 ? '+' : ''}${waistDelta.toFixed(1)} CM`, highlight: true },
+      { label: 'WAIST SIZE', value: waists.length ? `${last(waists)} CM` : '–', highlight: false },
+      { label: 'ACTIVE DAYS', value: `${activeDays(s, 7)}/7 DAYS`, highlight: true },
     ];
     ctx.save();
     ctx.textAlign = 'center';

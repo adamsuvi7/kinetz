@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from 'react';
-import { last, type AppState, type StudioTemplate } from '@/lib/state';
+import { currentWeight, type AppState, type StudioTemplate } from '@/lib/state';
 import { renderStudioCanvas } from '@/lib/canvas';
 import { loadImageFile } from '@/lib/image';
 import { downloadCanvas, shareCanvas } from '@/lib/share';
@@ -33,7 +33,7 @@ export default function StudioTab() {
   const boxesRef = useRef<Record<string, Box>>({});
   const dragRef = useRef<{ id: string; px: number; py: number; x: number; y: number; box: Box } | null>(null);
   const ride = s.rides.find((r) => r.id === st.rideId) ?? s.rides[0] ?? null;
-  const weightKg = last(s.bodyHistory.weight) || 72;
+  const weightKg = currentWeight(s);
 
   useEffect(() => {
     const t = setTimeout(() => set((p) => (p.studio.rideLayers === layers ? p : { ...p, studio: { ...p.studio, rideLayers: layers } })), 300);
@@ -135,7 +135,7 @@ export default function StudioTab() {
 
   return (
     <section className={`space-y-4${s.activeTab === 'studio' ? '' : ' hidden'}`}>
-      <div className="surface-card p-4">
+      <div className="surface-card p-4 studio-card">
         <div className="flex items-center justify-between mb-2">
           <div>
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-[#C8F526] text-[#0E110F]">
@@ -205,6 +205,7 @@ export default function StudioTab() {
           <TemplateGallery activeId={st.rideTemplate} onPick={applyTemplate} ride={ride} weightKg={weightKg} bgImage={st.bgImage} fontsReady={fontsReady} />
         )}
 
+        <div className="studio-preview">
         {/* Canvas Preview: 1080x1920 (9:16) or 1080x1350 (4:5) */}
         <div className="flex justify-center my-3">
           <div
@@ -225,6 +226,7 @@ export default function StudioTab() {
           </div>
         </div>
         {isRide && <p className="text-center text-[10px] opacity-55 -mt-1 mb-3">Ketuk elemen untuk memilih, lalu seret untuk memindahkan.</p>}
+        </div>
 
         {isRide && (
           <div className="mb-3">

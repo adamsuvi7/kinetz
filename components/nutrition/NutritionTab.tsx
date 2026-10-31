@@ -1,6 +1,6 @@
 'use client';
 
-import { formatNumberID } from '@/lib/state';
+import { formatNumberID, todayKey } from '@/lib/state';
 import { useApp } from '../AppProvider';
 
 const PRESET_CARDS = [
@@ -9,7 +9,6 @@ const PRESET_CARDS = [
   { icon: '🐟🌶️', label: 'Ikan Bakar + Tempe', meta: '480 kcal • 42g P' },
 ];
 
-const DONE_DAYS = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
 
 export default function NutritionTab() {
   const { s, set, toast, openCamera, exportToStudio } = useApp();
@@ -29,7 +28,11 @@ export default function NutritionTab() {
   };
 
   const logCurrentAiMeal = () => {
-    set((p) => ({ ...p, consumedCalories: p.consumedCalories + cal, consumedProtein: p.consumedProtein + prot }));
+    set((p) => {
+      const day = todayKey();
+      const cur = p.dietLog[day] ?? { kcal: 0, protein: 0 };
+      return { ...p, dietLog: { ...p.dietLog, [day]: { kcal: cur.kcal + cal, protein: cur.protein + prot } } };
+    });
     toast(`+${cal} kcal & +${prot}g Protein tercatat ke target harian!`);
   };
 
@@ -43,8 +46,18 @@ export default function NutritionTab() {
     set((p) => ({ ...p, tdeeInputs: next, bmr, tdee: maintenance + goalDelta, targetProtein: Math.round(w * 2.1) }));
   };
 
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const firstWeekday = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() + 6) % 7; // Monday first
+  const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
+    const key = todayKey(new Date(now.getFullYear(), now.getMonth(), i + 1));
+    const d = s.dietLog[key];
+    const logged = !!d && d.kcal > 0;
+    return { day: i + 1, key, logged, onTarget: logged && Math.abs(d.kcal - s.tdee) <= s.tdee * 0.1 && d.protein >= s.targetProtein };
+  });
+
   return (
-    <section className={`space-y-4${s.activeTab === 'nutrition' ? '' : ' hidden'}`}>
+    <section className={`tab-grid${s.activeTab === 'nutrition' ? '' : ' hidden'}`}>
       {/* AI Food Vision Scanner */}
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-2">
@@ -169,43 +182,46 @@ export default function NutritionTab() {
         </div>
       </div>
 
-      {/* MONTHLY CALENDAR & WORKOUT SUMMARY */}
+      {/* MONTHLY CALENDAR: days with food logged, from the diet log */}
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-extrabold">Calendar</h3>
-          <span className="text-xs px-2.5 py-1 rounded-full surface-card-alt font-semibold">📅 Okt 1 - Okt 31</span>
+          <h3 className="text-base font-extrabold">Kalender Makan</h3>
+          <span className="text-xs px-2.5 py-1 rounded-full surface-card-alt font-semibold">
+            📅 {now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+          </span>
         </div>
 
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold opacity-60 mb-2">
-          {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+          {['S', 'S', 'R', 'K', 'J', 'S', 'M'].map((d, i) => (
             <div key={i}>{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1.5 text-center text-xs">
-          {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
+          {Array.from({ length: firstWeekday }, (_, i) => <div key={`pad${i}`} />)}
+          {monthDays.map(({ day, key, logged, onTarget }) => (
             <div
-              key={d}
-              className={`h-9 rounded-full flex items-center justify-center font-bold ${DONE_DAYS.includes(d) ? 'bg-[#438257] text-white shadow' : 'surface-card-alt opacity-80'}`}
+              key={key}
+              title={logged ? `${formatNumberID(s.dietLog[key].kcal)} kcal · ${s.dietLog[key].protein} g protein` : undefined}
+              className={`h-9 rounded-full flex items-center justify-center font-bold ${
+                onTarget ? 'bg-[#438257] text-white shadow' : logged ? 'bg-[#438257]/40' : 'surface-card-alt opacity-70'
+              } ${key === todayKey() ? 'ring-2 ring-[#C8F526]' : ''}`}
             >
-              {d}
+              {day}
             </div>
           ))}
         </div>
+        <p className="text-[10px] opacity-55 mt-2">Hijau penuh = kalori dalam ±10% target dan protein tercapai. Hijau muda = makan tercatat.</p>
 
-        <div className="grid grid-cols-2 gap-2.5 mt-4">
-          <div className="pill-stat p-3 flex items-center justify-between">
-            <div>
-              <div className="text-[10px] opacity-65">Days Complete</div>
-              <div className="font-display font-bold text-base">24 / 30</div>
+        <div className="grid grid-cols-2 gap-2.5 mt-3">
+          <div className="pill-stat p-3">
+            <div className="text-[10px] opacity-65">Hari tercatat</div>
+            <div className="font-display font-bold text-base">
+              {monthDays.filter((d) => d.logged).length} / {now.getDate()}
             </div>
-            <span className="w-7 h-7 rounded-full bg-[#438257] text-white flex items-center justify-center text-xs">✓</span>
           </div>
-          <div className="pill-stat p-3 flex items-center justify-between">
-            <div>
-              <div className="text-[10px] opacity-65">Total kcal burned</div>
-              <div className="font-display font-bold text-base">14.234</div>
-            </div>
-            <span className="w-7 h-7 rounded-full bg-[#438257] text-white flex items-center justify-center text-xs">🔥</span>
+          <div className="pill-stat p-3">
+            <div className="text-[10px] opacity-65">Hari sesuai target</div>
+            <div className="font-display font-bold text-base">{monthDays.filter((d) => d.onTarget).length}</div>
           </div>
         </div>
       </div>

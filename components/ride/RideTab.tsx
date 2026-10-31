@@ -208,7 +208,7 @@ export default function RideTab() {
         : { text: `GPS ±${Math.round(acc)} m`, cls: acc <= 15 ? 'bg-[#C8F526]/20 text-[#C8F526]' : 'bg-amber-400/20 text-amber-300' };
 
   return (
-    <section className={`space-y-4${s.activeTab === 'ride' ? '' : ' hidden'}`}>
+    <section className={`tab-grid${s.activeTab === 'ride' ? '' : ' hidden'}`}>
       <div className="surface-card p-4">
         <div className="flex items-center justify-between mb-2">
           <div>

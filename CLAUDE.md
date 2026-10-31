@@ -49,3 +49,6 @@ Pertahankan sistem dua tema yang dapat diganti secara instan:
 - **Update OTA**: `lib/updater.ts` (self-hosted, tanpa cloud Capgo). Perubahan native (plugin/izin/ikon) wajib menaikkan `versionName` di `android/app/build.gradle`.
 - **Logo**: path vektor K di `lib/logo.ts` (dipakai header, story, ikon Android `ic_launcher_foreground_k.xml`, `app/icon.svg`). Hijau `#7EEA3D`, abu `#323E3A`.
 - **Template story default**: "Sorotan" (meniru poster referensi Kinetz).
+- **Home = dashboard progres** (`components/home/Dashboard.tsx`, analitik di `lib/progress.ts`, diuji `npm test`). Tab Analytics dan KOM sudah dihapus. Semua grafik memakai data tercatat: `dietLog` (per tanggal), `bodyLog` (ukuran bertanggal), `gymLog`/`gymBests` (sesi gym). Jangan isi data contoh.
+- **Gym**: tiap gerakan punya daftar set dengan kg & reps sendiri (`GymExercise`); PR = 1RM terbaik melebihi `gymBests`.
+- **Desktop**: ≥1024px sidebar kiri + grid 2 kolom (`.tab-grid`, `.studio-card` di `app/globals.css`).

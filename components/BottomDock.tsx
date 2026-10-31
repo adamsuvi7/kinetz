@@ -8,7 +8,6 @@ const NAV: { tab: Tab; icon: string; label: string }[] = [
   { tab: 'home', icon: '🏠', label: 'Home' },
   { tab: 'workout', icon: '🏋️', label: 'Workout' },
   { tab: 'nutrition', icon: '📅', label: 'Diet & Cal' },
-  { tab: 'analytics', icon: '📊', label: 'Analytics' },
   { tab: 'studio', icon: '📸', label: 'IG Story' },
 ];
 

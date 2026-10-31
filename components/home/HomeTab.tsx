@@ -1,6 +1,7 @@
 'use client';
 
-import { computeRiegelTime, formatNumberID, gymTotalVolume, last } from '@/lib/state';
+import { dietToday, formatNumberID } from '@/lib/state';
+import Dashboard from './Dashboard';
 import { useApp } from '../AppProvider';
 import FastingGauge from './FastingGauge';
 import TodayWorkoutCard from './TodayWorkoutCard';
@@ -21,16 +22,6 @@ export default function HomeTab() {
     toast(`Status latihan hari ${s.weeklySchedule[idx].day} diperbarui!`);
   };
 
-  const refreshAiIntelligence = () => {
-    const messages = [
-      `Volume ${s.currentSplit} Day mencapai ${formatNumberID(gymTotalVolume(s.gymSets))} KG dengan 2 Rekor PR baru! Protein harian ${Math.round((s.consumedProtein / s.targetProtein) * 100)}% terpenuhi. Pertahankan defisit kalori untuk memangkas lingkar pinggang.`,
-      `Analisis Hybrid: Cadence lari kamu stabil di ${s.runData.cadence} spm dengan estimasi waktu 5K ${computeRiegelTime(s.runData, 5)}. Asupan protein (${s.consumedProtein}g) menjaga pemulihan otot tetap hijau (Readiness 91%).`,
-      `Body Recomposition Insight: Berat badan turun ke ${last(s.bodyHistory.weight)} kg sementara beban angkatan relatif naik ke 1.41x BW. Jadwal puasa ${s.fastingProtocol} berjalan optimal.`,
-    ];
-    set((p) => ({ ...p, aiText: messages[Math.floor(Math.random() * messages.length)] }));
-    toast('AI Athlete Intelligence diperbarui!');
-  };
-
   const openCategoryQuick = (cat: (typeof CATEGORIES)[number]['cat']) => {
     if (cat === 'cycle') return switchTab('ride');
     switchTab('workout');
@@ -39,6 +30,7 @@ export default function HomeTab() {
 
   return (
     <section className={`space-y-4${s.activeTab === 'home' ? '' : ' hidden'}`}>
+      <div className="tab-grid">
       {/* YOUR PROGRESS CARD */}
       <div className="sage-hero-card p-4">
         <div className="flex items-center justify-between mb-3">
@@ -79,47 +71,16 @@ export default function HomeTab() {
             🎯 Target TDEE: <strong>{formatNumberID(s.tdee)}</strong> kcal
           </span>
           <span>
-            🥩 Protein: <strong>{`${s.consumedProtein} / ${s.targetProtein}g`}</strong>
+            🥩 Protein hari ini: <strong>{`${dietToday(s).protein} / ${s.targetProtein}g`}</strong>
           </span>
         </div>
       </div>
 
-      {/* 3 METRIC PILLS */}
-      <div className="grid grid-cols-3 gap-2.5">
-        {[
-          { icon: '🔥', value: formatNumberID(s.consumedCalories), label: 'Calories' },
-          { icon: '🏃', value: formatNumberID(s.steps), label: 'Steps' },
-          { icon: '💚', value: `${s.heartRate} bpm`, label: 'Heartbeat' },
-        ].map((p) => (
-          <div key={p.label} className="pill-stat p-3 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#438257]/25 text-[#C8F526] flex items-center justify-center font-bold text-sm">{p.icon}</div>
-            <div>
-              <div className="font-display font-bold text-sm leading-tight">{p.value}</div>
-              <div className="text-[10px] opacity-65">{p.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* KINETZ ATHLETE INTELLIGENCE */}
-      <div className="surface-card p-4 relative overflow-hidden">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#C8F526] text-[#0E110F]">AI ATHLETE INTELLIGENCE</span>
-            <span className="text-[11px] opacity-65">
-              Readiness: <strong className="text-[#C8F526]">88% Optimal</strong>
-            </span>
-          </div>
-          <button onClick={refreshAiIntelligence} className="text-[11px] opacity-70 hover:opacity-100 font-semibold">
-            ↻ Analisis
-          </button>
-        </div>
-        {/* aiText is built only from app-owned strings and numbers, never user input */}
-        <p className="text-xs leading-relaxed opacity-90" dangerouslySetInnerHTML={{ __html: s.aiText }} />
-      </div>
-
-      <FastingGauge />
       <TodayWorkoutCard />
+      <FastingGauge />
+      </div>
+
+      <Dashboard />
 
       {/* CATEGORIES */}
       <div>
