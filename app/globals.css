@@ -192,10 +192,13 @@ html.theme-light .muscle-active {
   animation: pulseBeacon 1.6s infinite;
 }
 
-/* Cards in a tab: one column on phones, two on desktop. */
-.tab-grid {
-  display: grid;
-  gap: 16px;
+/* Cards in a tab: one column on phones, two on desktop.
+   In the components layer so the `hidden` utility (display: none) still hides inactive tabs. */
+@layer components {
+  .tab-grid {
+    display: grid;
+    gap: 16px;
+  }
 }
 
 /* Desktop: sidebar navigation, wider two-column content. */
